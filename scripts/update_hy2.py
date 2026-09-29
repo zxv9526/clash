@@ -166,7 +166,7 @@ def parse_hy2_json_to_clash_proxy(json_str: str, node_index: int) -> Optional[Di
     return proxy_dict
 
 def generate_hy2_clash_yaml(proxies: List[Dict[str, Any]]) -> str:
-    """生成完整的 Clash 订阅配置 YAML 文本"""
+    """生成完整的 Clash 订阅配置 YAML 文本 (严格兼容 Mihomo / Clash Meta / Stash / Shadowrocket)"""
     proxy_names = [p["name"] for p in proxies]
 
     def yaml_indent(items, spaces=6):
@@ -175,18 +175,18 @@ def generate_hy2_clash_yaml(proxies: List[Dict[str, Any]]) -> str:
 
     yaml_proxies_block = ""
     for p in proxies:
-        yaml_proxies_block += f"  - name: {p['name']}\n"
+        yaml_proxies_block += f"  - name: \"{p['name']}\"\n"
         yaml_proxies_block += f"    type: {p['type']}\n"
-        yaml_proxies_block += f"    server: {p['server']}\n"
+        yaml_proxies_block += f"    server: \"{p['server']}\"\n"
         yaml_proxies_block += f"    port: {p['port']}\n"
-        yaml_proxies_block += f"    password: {p['password']}\n"
-        yaml_proxies_block += f"    sni: {p['sni']}\n"
+        yaml_proxies_block += f"    password: \"{p['password']}\"\n"
+        yaml_proxies_block += f"    sni: \"{p['sni']}\"\n"
         yaml_proxies_block += f"    skip-cert-verify: {str(p['skip-cert-verify']).lower()}\n"
-        yaml_proxies_block += f"    up: {p['up']}\n"
-        yaml_proxies_block += f"    down: {p['down']}\n"
+        yaml_proxies_block += f"    up: \"{p['up']}\"\n"
+        yaml_proxies_block += f"    down: \"{p['down']}\"\n"
         if "obfs" in p and p["obfs"]:
-            yaml_proxies_block += f"    obfs: {p['obfs']}\n"
-            yaml_proxies_block += f"    obfs-password: {p.get('obfs-password', '')}\n"
+            yaml_proxies_block += f"    obfs: \"{p['obfs']}\"\n"
+            yaml_proxies_block += f"    obfs-password: \"{p.get('obfs-password', '')}\"\n"
 
     template = f"""# =================================================================
 # Clash Hysteria 2 (HY2) 专用节点订阅配置文件
@@ -196,12 +196,18 @@ def generate_hy2_clash_yaml(proxies: List[Dict[str, Any]]) -> str:
 secret: github.com/Alvin9999-newpac/fanqiang
 mixed-port: 7890
 allow-lan: false
+mode: rule
 log-level: info
+ipv6: true
+
 dns:
-  enabled: true
+  enable: true
+  ipv6: true
   nameserver:
-    - 119.29.29.29
     - 223.5.5.5
+    - 119.29.29.29
+    - 114.114.114.114
+    - 2400:3200::1
   fallback-filter:
     geoip: false
     ipcidr:
@@ -220,7 +226,7 @@ proxy-groups:
 {yaml_indent(proxy_names, 6)}
   - name: ♻️ 自动选择
     type: fallback
-    url: https://www.gstatic.com/generate_204
+    url: http://www.gstatic.com/generate_204
     interval: 5
     proxies:
 {yaml_indent(proxy_names, 6)}
