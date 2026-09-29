@@ -319,19 +319,19 @@ jobs:
         id: check_changes
         run: |
           git status --porcelain
-          if [[ -n $(git status --porcelain ${options.outputFileName}) ]]; then
+          if [[ -n $(git status --porcelain ${options.outputFileName} config.b64) ]]; then
             echo "has_changes=true" >> $GITHUB_OUTPUT
           else
             echo "has_changes=false" >> $GITHUB_OUTPUT
           fi
 
       - name: 📤 提交并推送到 GitHub 仓库
-        if: steps.check_changes.outputs.has_changes == 'true'
+        if: steps.check_changes.outputs.has_changes == 'true' || github.event_name == 'workflow_dispatch'
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           git add ${options.outputFileName} config.b64
-          git commit -m "chore(auto): 自动更新 12 节点订阅配置 [skip ci] ($(date +'%Y-%m-%d %H:%M:%S'))"
+          git commit -m "chore(auto): 自动更新 12 节点订阅配置 [skip ci] ($(date +'%Y-%m-%d %H:%M:%S'))" || true
           git push origin HEAD || git push
 
       ${options.enableGitHubPages ? `

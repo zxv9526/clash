@@ -1,0 +1,167 @@
+# =================================================================
+# Clash Hysteria 1 (HY1) 专用节点订阅配置文件
+# 独立自动化更新于: 2026-09-29 21:38:51
+# 节点总数: 4 个可用 Hysteria 1 节点
+# =================================================================
+secret: github.com/Alvin9999-newpac/fanqiang
+mixed-port: 7890
+allow-lan: false
+log-level: info
+dns:
+  enabled: true
+  nameserver:
+    - 119.29.29.29
+    - 223.5.5.5
+  fallback-filter:
+    geoip: false
+    ipcidr:
+      - 240.0.0.0/4
+      - 0.0.0.0/32
+
+proxies:
+  - name: HY1 节点 01 (62.210.70.191)
+    type: hysteria
+    server: 62.210.70.191
+    port: 23556
+    auth-str: github.com/Alvin9999-newpac/fanqiang
+    sni: bing.com
+    skip-cert-verify: true
+    alpn:
+      - h3
+    protocol: udp
+    up: 11 Mbps
+    down: 55 Mbps
+  - name: HY1 节点 02 (62.210.70.191)
+    type: hysteria
+    server: 62.210.70.191
+    port: 23556
+    auth-str: github.com/Alvin9999-newpac/fanqiang
+    sni: bing.com
+    skip-cert-verify: true
+    alpn:
+      - h3
+    protocol: udp
+    up: 11 Mbps
+    down: 55 Mbps
+  - name: HY1 节点 03 (5.83.129.90)
+    type: hysteria
+    server: 5.83.129.90
+    port: 54177
+    auth-str: dongtaiwang.com
+    sni: apple.com
+    skip-cert-verify: true
+    alpn:
+      - h3
+    protocol: udp
+    up: 11 Mbps
+    down: 55 Mbps
+  - name: HY1 节点 04 (5.83.129.90)
+    type: hysteria
+    server: 5.83.129.90
+    port: 54177
+    auth-str: dongtaiwang.com
+    sni: apple.com
+    skip-cert-verify: true
+    alpn:
+      - h3
+    protocol: udp
+    up: 11 Mbps
+    down: 55 Mbps
+
+proxy-groups:
+  - name: 🚀 节点选择
+    type: select
+    proxies:
+      - ♻️ 自动选择
+      - DIRECT
+      - HY1 节点 01 (62.210.70.191)
+      - HY1 节点 02 (62.210.70.191)
+      - HY1 节点 03 (5.83.129.90)
+      - HY1 节点 04 (5.83.129.90)
+  - name: ♻️ 自动选择
+    type: fallback
+    url: https://www.gstatic.com/generate_204
+    interval: 5
+    proxies:
+      - HY1 节点 01 (62.210.70.191)
+      - HY1 节点 02 (62.210.70.191)
+      - HY1 节点 03 (5.83.129.90)
+      - HY1 节点 04 (5.83.129.90)
+  - name: 🌍 国外媒体
+    type: select
+    proxies:
+      - 🚀 节点选择
+      - ♻️ 自动选择
+      - 🎯 全球直连
+      - HY1 节点 01 (62.210.70.191)
+      - HY1 节点 02 (62.210.70.191)
+      - HY1 节点 03 (5.83.129.90)
+      - HY1 节点 04 (5.83.129.90)
+  - name: 📲 电报信息
+    type: select
+    proxies:
+      - 🚀 节点选择
+      - 🎯 全球直连
+      - HY1 节点 01 (62.210.70.191)
+      - HY1 节点 02 (62.210.70.191)
+      - HY1 节点 03 (5.83.129.90)
+      - HY1 节点 04 (5.83.129.90)
+  - name: Ⓜ️ 微软服务
+    type: select
+    proxies:
+      - 🎯 全球直连
+      - 🚀 节点选择
+      - HY1 节点 01 (62.210.70.191)
+      - HY1 节点 02 (62.210.70.191)
+      - HY1 节点 03 (5.83.129.90)
+      - HY1 节点 04 (5.83.129.90)
+  - name: 🍎 苹果服务
+    type: select
+    proxies:
+      - 🚀 节点选择
+      - 🎯 全球直连
+      - HY1 节点 01 (62.210.70.191)
+      - HY1 节点 02 (62.210.70.191)
+      - HY1 节点 03 (5.83.129.90)
+      - HY1 节点 04 (5.83.129.90)
+  - name: 🎯 全球直连
+    type: select
+    proxies:
+      - DIRECT
+      - 🚀 节点选择
+      - ♻️ 自动选择
+      - HY1 节点 01 (62.210.70.191)
+      - HY1 节点 02 (62.210.70.191)
+      - HY1 节点 03 (5.83.129.90)
+      - HY1 节点 04 (5.83.129.90)
+  - name: 🛑 全球拦截
+    type: select
+    proxies:
+      - REJECT
+      - DIRECT
+      - HY1 节点 01 (62.210.70.191)
+      - HY1 节点 02 (62.210.70.191)
+      - HY1 节点 03 (5.83.129.90)
+      - HY1 节点 04 (5.83.129.90)
+  - name: 🍃 应用净化
+    type: select
+    proxies:
+      - REJECT
+      - DIRECT
+      - HY1 节点 01 (62.210.70.191)
+      - HY1 节点 02 (62.210.70.191)
+      - HY1 节点 03 (5.83.129.90)
+      - HY1 节点 04 (5.83.129.90)
+  - name: 🐟 漏网之鱼
+    type: select
+    proxies:
+      - 🚀 节点选择
+      - 🎯 全球直连
+      - ♻️ 自动选择
+      - HY1 节点 01 (62.210.70.191)
+      - HY1 节点 02 (62.210.70.191)
+      - HY1 节点 03 (5.83.129.90)
+      - HY1 节点 04 (5.83.129.90)
+
+rules:
+  - MATCH,🚀 节点选择

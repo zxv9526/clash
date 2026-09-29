@@ -1,21 +1,41 @@
-# 🚀 Clash & Mihomo 12节点自动聚合 GitHub 工作流
+# 🚀 Clash 节点自动聚合 GitHub 双工作流系统
 
-[![Update Clash Config](https://github.com/actions/setup-python/actions/workflows/update.yml/badge.svg)](../../actions)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Nodes](https://img.shields.io/badge/Nodes-12%20Active-emerald.svg)](#)
-[![Clash Meta](https://img.shields.io/badge/Client-Clash%20%7C%20Mihomo%20%7C%20Shadowrocket-indigo.svg)](#)
-
-> 基于 **GitHub Actions** 的全自动订阅聚合工作流。定时从 `urls.txt` 中的 12 个远端源抓取最新节点配置，自动容灾切换、自动重命名防重名冲突，并合并到 `template.yaml` 模板中，生成标准完整的 `config.yaml` 配置文件。
+> 基于 **GitHub Actions** 的全自动节点聚合工作流。内置 **两个独立通道**，分别维护 Clash Meta 混合订阅与 Hysteria 1 (HY1) 专用订阅，双通道互不干扰、各自独立定时更新！
 
 ---
 
-## 🌟 核心特性
+## 🌟 双工作流架构
 
-- ⚡ **全自动定时构建**：内置 GitHub Actions 调度（默认每天定时自动抓取一次最新节点）。
-- 🛡️ **双镜像容灾**：每个节点均支持 GitLab 主地址 + 备用直连镜像源，主源异常自动切换。
-- 🔄 **防止节点重名**：自动重命名为 `节点 01 [HYSTERIA2] (IP)` 等唯一名称，杜绝客户端配置冲突。
-- 🎯 **完整策略组支持**：自动注入 `🚀 节点选择`、`♻️ 自动选择`、`🌍 国外媒体`、`📲 电报信息`、`Ⓜ️ 微软服务`、`🍎 苹果服务`、`🐟 漏网之鱼`。
-- 📱 **多格式分发**：同时输出 `config.yaml` 与 Base64 编码的 `config.b64`，支持小火箭、Surge、Stash 等。
+| 工作流名称 | 数据源文件 | 核心脚本 | 输出配置文件 | 特点 |
+| :--- | :--- | :--- | :--- | :--- |
+| **1. Clash Meta 订阅** | `urls.txt` | `scripts/update_clash.py` | `config.yaml` / `config.b64` | 支持 Hysteria2 等多协议混合解析 |
+| **2. Hysteria 1 独立订阅** | `urls_hy1.txt` | `scripts/update_hy1.py` | `hy1_config.yaml` / `hy1_config.b64` | 专门抓取 12 个 HY1 JSON 源并生成 Clash 专属配置 |
+
+---
+
+## 📱 客户端订阅链接直链汇总 (公开仓库免翻墙直连)
+
+### 🟣 通道 A：Hysteria 1 (HY1) 专属订阅
+- **国内高速加速直链 (推荐 ⭐)**:
+  ```text
+  https://ghfast.top/https://raw.githubusercontent.com/zxv9526/clash/main/hy1_config.yaml
+  ```
+- **GitMirror 备用直链**:
+  ```text
+  https://raw.gitmirror.com/zxv9526/clash/main/hy1_config.yaml
+  ```
+
+---
+
+### 🔵 通道 B：Clash Meta 混合主订阅
+- **国内高速加速直链 (推荐 ⭐)**:
+  ```text
+  https://ghfast.top/https://raw.githubusercontent.com/zxv9526/clash/main/config.yaml
+  ```
+- **GitMirror 备用直链**:
+  ```text
+  https://raw.gitmirror.com/zxv9526/clash/main/config.yaml
+  ```
 
 ---
 
@@ -24,17 +44,17 @@
 ```text
 ├── .github/
 │   └── workflows/
-│       └── update.yml          # GitHub Actions 自动化工作流调度
+│       ├── update.yml          # 工作流 1: 自动更新 Clash Meta 订阅 (config.yaml)
+│       └── update_hy1.yml      # 工作流 2: 自动更新 Hysteria 1 订阅 (hy1_config.yaml)
 ├── scripts/
-│   └── update_clash.py         # 核心提取与模板合并脚本
-├── urls.txt                    # 存放 12 个节点源的订阅地址 (支持主|备格式)
-├── template.yaml               # Clash / Meta YAML 配置文件模板
-├── requirements.txt            # Python 运行依赖库
-├── local_test.bat              # Windows 本地一键测试脚本
-├── local_test.sh               # Linux/macOS 本地一键测试脚本
-├── LICENSE                     # 开源协议
-├── config.yaml                 # 自动生成的 Clash 配置文件
-└── README.md                   # 使用与订阅说明
+│   ├── update_clash.py         # 工作流 1 核心抓取与合并脚本
+│   └── update_hy1.py           # 工作流 2 HY1 JSON 转换与生成脚本
+├── urls.txt                    # 工作流 1 的 12 个节点源 (支持主|备)
+├── urls_hy1.txt                # 工作流 2 的 12 个 Hysteria 1 JSON 数据源
+├── config.yaml                 # 自动生成的 Clash Meta 配置文件
+├── hy1_config.yaml             # 自动生成的 Hysteria 1 专属配置文件
+├── template.yaml               # Clash 基础策略组模板
+└── README.md                   # 系统说明文档
 ```
 
 ---
