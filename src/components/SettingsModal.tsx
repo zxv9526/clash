@@ -112,10 +112,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 onChange={e => setWorkflowOptions({ ...workflowOptions, cronSchedule: e.target.value })}
                 className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-indigo-200 focus:outline-none focus:border-indigo-500 font-mono"
               >
-                <option value="0 */3 * * *">每 3 小时更新一次 (0 */3 * * *)</option>
-                <option value="0 */6 * * *">每 6 小时更新一次 (推荐: 0 */6 * * *)</option>
+                <option value="0 20 * * *">每天凌晨 04:00 更新一次 (推荐: 0 20 * * *)</option>
+                <option value="0 0 * * *">每天早晨 08:00 更新一次 (0 0 * * *)</option>
+                <option value="0 12 * * *">每天晚上 20:00 更新一次 (0 12 * * *)</option>
                 <option value="0 */12 * * *">每 12 小时更新一次 (0 */12 * * *)</option>
-                <option value="0 4 * * *">每天凌晨 4 点更新一次 (0 4 * * *)</option>
+                <option value="0 */6 * * *">每 6 小时更新一次 (0 */6 * * *)</option>
               </select>
             </div>
 

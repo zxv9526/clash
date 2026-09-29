@@ -328,7 +328,7 @@ jobs:
           git config --local user.name "github-actions[bot]"
           git add ${options.outputFileName} config.b64
           git commit -m "chore(auto): 自动更新 12 节点订阅配置 [skip ci] ($(date +'%Y-%m-%d %H:%M:%S'))"
-          git push origin ${options.targetBranch}
+          git push origin HEAD || git push
 
       ${options.enableGitHubPages ? `
       - name: 🌐 部署至 GitHub Pages (提供高速订阅访问)

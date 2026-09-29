@@ -229,7 +229,7 @@ export const DEFAULT_NAMING_CONFIG: NamingConfig = {
 };
 
 export const DEFAULT_WORKFLOW_OPTIONS: WorkflowOptions = {
-  cronSchedule: '0 */6 * * *',
+  cronSchedule: '0 20 * * *',
   targetBranch: 'main',
   outputFileName: 'config.yaml',
   enableGitHubPages: true,

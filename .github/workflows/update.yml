@@ -1,9 +1,9 @@
 name: 🔄 自动更新 Clash 12节点订阅配置
 
 on:
-  # 定时调度更新 (每 6 小时自动抓取一次)
+  # 定时调度更新 (每天定时自动抓取一次，北京时间凌晨 04:00 / UTC 20:00)
   schedule:
-    - cron: '0 */6 * * *'
+    - cron: '0 20 * * *'
   # 支持在 GitHub 网页上直接点击按钮手动执行
   workflow_dispatch:
   # 推送修改时也可以触发
@@ -61,4 +61,4 @@ jobs:
           git config --local user.name "github-actions[bot]"
           git add config.yaml config.b64
           git commit -m "chore(auto): 自动更新 12 节点订阅配置 [skip ci] ($(date +'%Y-%m-%d %H:%M:%S'))"
-          git push origin main || git push origin master
+          git push origin HEAD || git push
