@@ -92,7 +92,7 @@ def fetch_url_content(url: str) -> Optional[str]:
     return None
 
 def parse_hy2_json_to_clash_proxy(json_str: str, node_index: int) -> Optional[Dict[str, Any]]:
-    """解析 Hysteria 2 JSON 配置为 Clash 标准 Hysteria2 节点"""
+    """解析 Hysteria 2 JSON 配置为 Clash 标准 Hysteria2 节点 (完美兼容 Clash Meta / Mihomo / Stash)"""
     try:
         data = json.loads(json_str.strip())
     except Exception:
@@ -109,30 +109,29 @@ def parse_hy2_json_to_clash_proxy(json_str: str, node_index: int) -> Optional[Di
     if not server_raw or ":" not in server_raw:
         return None
 
-    # 解析 host 和 port
+    # 解析 host 和 port (支持 IPv6 [2001:...]:port 和 IPv4:port)
     if server_raw.startswith("[") and "]:" in server_raw:
         parts = server_raw.split("]:")
-        host = parts[0].lstrip("[")
-        port = int(parts[1])
+        host = parts[0].lstrip("[").strip()
+        port = int(parts[1].strip())
     else:
         parts = server_raw.rsplit(":", 1)
-        host = parts[0]
-        port = int(parts[1])
+        host = parts[0].strip()
+        port = int(parts[1].strip())
 
-    # 密码 (HY2 常用 auth)
+    # 密码 (HY2 认证参数兼容 password 与 auth)
     auth_str = str(data.get("auth", data.get("password", ""))).strip()
 
     # TLS 设置
     tls_obj = data.get("tls", {})
     sni = str(tls_obj.get("sni", data.get("sni", host))).strip() or host
-    insecure = tls_obj.get("insecure", data.get("insecure", False))
+    insecure = tls_obj.get("insecure", data.get("insecure", True))
 
     # 带宽
     bw_obj = data.get("bandwidth", {})
     up_raw = bw_obj.get("up", data.get("up", "11 mbps"))
     down_raw = bw_obj.get("down", data.get("down", "55 mbps"))
 
-    # 格式化带宽为字符串
     up_str = f"{up_raw} Mbps" if isinstance(up_raw, (int, float)) else str(up_raw).strip()
     down_str = f"{down_raw} Mbps" if isinstance(down_raw, (int, float)) else str(down_raw).strip()
 
@@ -154,8 +153,10 @@ def parse_hy2_json_to_clash_proxy(json_str: str, node_index: int) -> Optional[Di
         "server": host,
         "port": port,
         "password": auth_str,
+        "auth": auth_str,
         "sni": sni,
         "skip-cert-verify": bool(insecure),
+        "alpn": ["h3"],
         "up": up_str,
         "down": down_str
     }
@@ -167,7 +168,7 @@ def parse_hy2_json_to_clash_proxy(json_str: str, node_index: int) -> Optional[Di
     return proxy_dict
 
 def generate_hy2_clash_yaml(proxies: List[Dict[str, Any]]) -> str:
-    """生成完整的 Clash 订阅配置 YAML 文本"""
+    """生成完整的 Clash 订阅配置 YAML 文本 (含 IPv6 全面支持与多内核兼容)"""
     proxy_names = [p["name"] for p in proxies]
 
     def yaml_indent(items, spaces=6):
@@ -181,8 +182,11 @@ def generate_hy2_clash_yaml(proxies: List[Dict[str, Any]]) -> str:
         yaml_proxies_block += f"    server: {p['server']}\n"
         yaml_proxies_block += f"    port: {p['port']}\n"
         yaml_proxies_block += f"    password: {p['password']}\n"
+        yaml_proxies_block += f"    auth: {p['auth']}\n"
         yaml_proxies_block += f"    sni: {p['sni']}\n"
         yaml_proxies_block += f"    skip-cert-verify: {str(p['skip-cert-verify']).lower()}\n"
+        yaml_proxies_block += f"    alpn:\n"
+        yaml_proxies_block += f"      - h3\n"
         yaml_proxies_block += f"    up: {p['up']}\n"
         yaml_proxies_block += f"    down: {p['down']}\n"
         if "obfs" in p:
@@ -197,12 +201,21 @@ def generate_hy2_clash_yaml(proxies: List[Dict[str, Any]]) -> str:
 secret: github.com/Alvin9999-newpac/fanqiang
 mixed-port: 7890
 allow-lan: false
+mode: rule
 log-level: info
+ipv6: true
+unified-delay: true
+tcp-concurrent: true
+
 dns:
-  enabled: true
+  enable: true
+  ipv6: true
   nameserver:
-    - 119.29.29.29
     - 223.5.5.5
+    - 119.29.29.29
+    - 114.114.114.114
+    - 2400:3200::1
+    - 2402:4e00::
   fallback-filter:
     geoip: false
     ipcidr:

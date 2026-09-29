@@ -1,17 +1,26 @@
 # =================================================================
 # Clash Hysteria 2 (HY2) 专用节点订阅配置文件
-# 独立自动化更新于: 2026-09-29 21:47:11
-# 节点总数: 4 个可用 Hysteria 2 节点
+# 独立自动化更新于: 2026-09-29 21:50:15
+# 节点总数: 6 个可用 Hysteria 2 节点
 # =================================================================
 secret: github.com/Alvin9999-newpac/fanqiang
 mixed-port: 7890
 allow-lan: false
+mode: rule
 log-level: info
+ipv6: true
+unified-delay: true
+tcp-concurrent: true
+
 dns:
-  enabled: true
+  enable: true
+  ipv6: true
   nameserver:
-    - 119.29.29.29
     - 223.5.5.5
+    - 119.29.29.29
+    - 114.114.114.114
+    - 2400:3200::1
+    - 2402:4e00::
   fallback-filter:
     geoip: false
     ipcidr:
@@ -24,8 +33,11 @@ proxies:
     server: 2001:bc8:32d7:17b::3
     port: 22000
     password: dongtaiwang.com
+    auth: dongtaiwang.com
     sni: www.microsoft.com
     skip-cert-verify: true
+    alpn:
+      - h3
     up: 11 mbps
     down: 55 mbps
   - name: HY2 节点 02 (2001:bc8:32d7:17b::3)
@@ -33,8 +45,11 @@ proxies:
     server: 2001:bc8:32d7:17b::3
     port: 22000
     password: dongtaiwang.com
+    auth: dongtaiwang.com
     sni: www.microsoft.com
     skip-cert-verify: true
+    alpn:
+      - h3
     up: 11 mbps
     down: 55 mbps
   - name: HY2 节点 03 (2001:bc8:32d7:17b::3)
@@ -42,8 +57,11 @@ proxies:
     server: 2001:bc8:32d7:17b::3
     port: 22000
     password: dongtaiwang.com
+    auth: dongtaiwang.com
     sni: www.microsoft.com
     skip-cert-verify: true
+    alpn:
+      - h3
     up: 11 mbps
     down: 55 mbps
   - name: HY2 节点 04 (2001:bc8:32d7:17b::3)
@@ -51,8 +69,35 @@ proxies:
     server: 2001:bc8:32d7:17b::3
     port: 22000
     password: dongtaiwang.com
+    auth: dongtaiwang.com
     sni: www.microsoft.com
     skip-cert-verify: true
+    alpn:
+      - h3
+    up: 11 mbps
+    down: 55 mbps
+  - name: HY2 节点 05 (2001:bc8:32d7:17b::8)
+    type: hysteria2
+    server: 2001:bc8:32d7:17b::8
+    port: 22000
+    password: dongtaiwang.com
+    auth: dongtaiwang.com
+    sni: apple.com
+    skip-cert-verify: true
+    alpn:
+      - h3
+    up: 11 mbps
+    down: 55 mbps
+  - name: HY2 节点 06 (2001:bc8:32d7:302::11)
+    type: hysteria2
+    server: 2001:bc8:32d7:302::11
+    port: 20088
+    password: dongtaiwang.com
+    auth: dongtaiwang.com
+    sni: apple.com
+    skip-cert-verify: true
+    alpn:
+      - h3
     up: 11 mbps
     down: 55 mbps
 
@@ -66,6 +111,8 @@ proxy-groups:
       - HY2 节点 02 (2001:bc8:32d7:17b::3)
       - HY2 节点 03 (2001:bc8:32d7:17b::3)
       - HY2 节点 04 (2001:bc8:32d7:17b::3)
+      - HY2 节点 05 (2001:bc8:32d7:17b::8)
+      - HY2 节点 06 (2001:bc8:32d7:302::11)
   - name: ♻️ 自动选择
     type: fallback
     url: https://www.gstatic.com/generate_204
@@ -75,6 +122,8 @@ proxy-groups:
       - HY2 节点 02 (2001:bc8:32d7:17b::3)
       - HY2 节点 03 (2001:bc8:32d7:17b::3)
       - HY2 节点 04 (2001:bc8:32d7:17b::3)
+      - HY2 节点 05 (2001:bc8:32d7:17b::8)
+      - HY2 节点 06 (2001:bc8:32d7:302::11)
   - name: 🌍 国外媒体
     type: select
     proxies:
@@ -85,6 +134,8 @@ proxy-groups:
       - HY2 节点 02 (2001:bc8:32d7:17b::3)
       - HY2 节点 03 (2001:bc8:32d7:17b::3)
       - HY2 节点 04 (2001:bc8:32d7:17b::3)
+      - HY2 节点 05 (2001:bc8:32d7:17b::8)
+      - HY2 节点 06 (2001:bc8:32d7:302::11)
   - name: 📲 电报信息
     type: select
     proxies:
@@ -94,6 +145,8 @@ proxy-groups:
       - HY2 节点 02 (2001:bc8:32d7:17b::3)
       - HY2 节点 03 (2001:bc8:32d7:17b::3)
       - HY2 节点 04 (2001:bc8:32d7:17b::3)
+      - HY2 节点 05 (2001:bc8:32d7:17b::8)
+      - HY2 节点 06 (2001:bc8:32d7:302::11)
   - name: Ⓜ️ 微软服务
     type: select
     proxies:
@@ -103,6 +156,8 @@ proxy-groups:
       - HY2 节点 02 (2001:bc8:32d7:17b::3)
       - HY2 节点 03 (2001:bc8:32d7:17b::3)
       - HY2 节点 04 (2001:bc8:32d7:17b::3)
+      - HY2 节点 05 (2001:bc8:32d7:17b::8)
+      - HY2 节点 06 (2001:bc8:32d7:302::11)
   - name: 🍎 苹果服务
     type: select
     proxies:
@@ -112,6 +167,8 @@ proxy-groups:
       - HY2 节点 02 (2001:bc8:32d7:17b::3)
       - HY2 节点 03 (2001:bc8:32d7:17b::3)
       - HY2 节点 04 (2001:bc8:32d7:17b::3)
+      - HY2 节点 05 (2001:bc8:32d7:17b::8)
+      - HY2 节点 06 (2001:bc8:32d7:302::11)
   - name: 🎯 全球直连
     type: select
     proxies:
@@ -122,6 +179,8 @@ proxy-groups:
       - HY2 节点 02 (2001:bc8:32d7:17b::3)
       - HY2 节点 03 (2001:bc8:32d7:17b::3)
       - HY2 节点 04 (2001:bc8:32d7:17b::3)
+      - HY2 节点 05 (2001:bc8:32d7:17b::8)
+      - HY2 节点 06 (2001:bc8:32d7:302::11)
   - name: 🛑 全球拦截
     type: select
     proxies:
@@ -131,6 +190,8 @@ proxy-groups:
       - HY2 节点 02 (2001:bc8:32d7:17b::3)
       - HY2 节点 03 (2001:bc8:32d7:17b::3)
       - HY2 节点 04 (2001:bc8:32d7:17b::3)
+      - HY2 节点 05 (2001:bc8:32d7:17b::8)
+      - HY2 节点 06 (2001:bc8:32d7:302::11)
   - name: 🍃 应用净化
     type: select
     proxies:
@@ -140,6 +201,8 @@ proxy-groups:
       - HY2 节点 02 (2001:bc8:32d7:17b::3)
       - HY2 节点 03 (2001:bc8:32d7:17b::3)
       - HY2 节点 04 (2001:bc8:32d7:17b::3)
+      - HY2 节点 05 (2001:bc8:32d7:17b::8)
+      - HY2 节点 06 (2001:bc8:32d7:302::11)
   - name: 🐟 漏网之鱼
     type: select
     proxies:
@@ -150,6 +213,8 @@ proxy-groups:
       - HY2 节点 02 (2001:bc8:32d7:17b::3)
       - HY2 节点 03 (2001:bc8:32d7:17b::3)
       - HY2 节点 04 (2001:bc8:32d7:17b::3)
+      - HY2 节点 05 (2001:bc8:32d7:17b::8)
+      - HY2 节点 06 (2001:bc8:32d7:302::11)
 
 rules:
   - MATCH,🚀 节点选择

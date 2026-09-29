@@ -2,6 +2,8 @@ https://gitlab.com/free9999/ipupdate/-/raw/master/backup/img/1/2/ip/hysteria2/1/
 https://gitlab.com/free9999/ipupdate/-/raw/master/backup/img/1/2/ip/hysteria2/2/config.json
 https://gitlab.com/free9999/ipupdate/-/raw/master/backup/img/1/2/ip/hysteria2/3/config.json
 https://gitlab.com/free9999/ipupdate/-/raw/master/backup/img/1/2/ip/hysteria2/4/config.json
+https://gitlab.com/free9999/ipupdate/-/raw/master/hysteria2/config.json
+https://gitlab.com/free9999/ipupdate/-/raw/master/hysteria2/2/config.json
 https://gitlab.com/free9999/ipupdate/-/raw/master/backup/img/1/2/ip/hysteria2/5/config.json
 https://gitlab.com/free9999/ipupdate/-/raw/master/backup/img/1/2/ip/hysteria2/6/config.json
 https://gitlab.com/free9999/ipupdate/-/raw/master/backup/img/1/2/ip/hysteria2/7/config.json
