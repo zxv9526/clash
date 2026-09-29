@@ -59,7 +59,7 @@ jobs:
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add hy2_config.yaml hy2_config.b64
+          git add hy2_config.yaml hy2_config.b64 hy2_links.txt
           git commit -m "chore(auto): 自动更新 Hysteria 2 纯净独立配置 [skip ci] ($(date +'%Y-%m-%d %H:%M:%S'))" || true
           git pull --rebase || true
           git push origin HEAD || git push

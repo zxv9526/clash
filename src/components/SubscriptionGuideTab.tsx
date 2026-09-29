@@ -203,10 +203,14 @@ async function handleRequest(request) {
             </span>
             <div>
               <h2 className="text-base sm:text-lg font-bold text-white">
-                {activeSub === 'hy1' ? '⚡ Hysteria 1 (HY1) 订阅直链' : '⚡ Clash Meta 主订阅直链'}
+                {activeSub === 'hy2'
+                  ? '⚡ Hysteria 2 (HY2) 专用订阅直链 (含 Karing / Clash Meta / Base64)'
+                  : activeSub === 'hy1'
+                  ? '⚡ Hysteria 1 (HY1) 专用订阅直链'
+                  : '⚡ Clash Meta 主订阅直链'}
               </h2>
               <p className="text-xs text-slate-400">
-                当前正在生成 <strong className="text-indigo-300">{targetFile}</strong> 的客户端直连订阅。
+                当前正在生成 <strong className="text-indigo-300">{targetFile}</strong> 的客户端直连订阅（支持 Karing / Clash Verge / v2rayNG / Shadowrocket）。
               </p>
             </div>
           </div>

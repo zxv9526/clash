@@ -2,10 +2,13 @@
 # -*- coding: utf-8 -*-
 """
 =============================================================================
-Clash Hysteria 2 (HY2) 独立节点自动化聚合与生成脚本
-- 数据源：urls_hy2.txt (包含 12 个 Hysteria 2 JSON 配置文件地址)
-- 独立输出：hy2_config.yaml 与 hy2_config.b64 (与主订阅/HY1订阅完全隔离)
-- 特性：自动解析 Hysteria 2 原生协议、智能双源容灾、策略组动态注入
+Clash / Karing Hysteria 2 (HY2) 独立节点自动化聚合与生成脚本
+- 数据源：urls_hy2.txt (包含 14 个 Hysteria 2 JSON 配置文件地址)
+- 独立输出：
+  1. hy2_config.yaml  -> 兼容 Clash Meta / Mihomo / Karing / Clash Verge
+  2. hy2_config.b64   -> Base64 格式的 hy2:// 节点列表 (Karing/v2rayNG/Shadowrocket 原生秒解析)
+  3. hy2_links.txt    -> 明文 hy2:// 节点连接列表
+- 特性：双字段认证兼容 (password/auth)、标准 hy2 URI 生成、主备容灾切换
 =============================================================================
 """
 
@@ -15,6 +18,7 @@ import json
 import base64
 import re
 import datetime
+import urllib.parse
 from typing import List, Dict, Any, Optional
 
 try:
@@ -36,6 +40,7 @@ TIMEOUT = 12
 MAX_RETRIES = 2
 OUTPUT_YAML = "hy2_config.yaml"
 OUTPUT_B64 = "hy2_config.b64"
+OUTPUT_LINKS = "hy2_links.txt"
 URLS_FILE = "urls_hy2.txt"
 
 DEFAULT_HEADERS = {
@@ -92,7 +97,7 @@ def fetch_url_content(url: str) -> Optional[str]:
     return None
 
 def parse_hy2_json_to_clash_proxy(json_str: str, node_index: int) -> Optional[Dict[str, Any]]:
-    """解析 Hysteria 2 JSON 配置为 Clash 标准 Hysteria2 节点 (完美兼容 Clash Meta / Mihomo / Stash / Shadowrocket)"""
+    """解析 Hysteria 2 JSON 配置为标准节点对象 (兼容 Clash Meta / Mihomo / Karing / Sing-box)"""
     try:
         data = json.loads(json_str.strip())
     except Exception:
@@ -119,18 +124,18 @@ def parse_hy2_json_to_clash_proxy(json_str: str, node_index: int) -> Optional[Di
         host = parts[0].strip()
         port = int(parts[1].strip())
 
-    # 密码 (HY2 认证字段统一为 password)
+    # 密码 (HY2 认证字段)
     auth_str = str(data.get("auth", data.get("password", "dongtaiwang.com"))).strip()
 
-    # TLS 设置 (SNI 与跳过证书校验)
+    # TLS 设置 (SNI 与证书校验)
     tls_obj = data.get("tls", {})
     sni = str(tls_obj.get("sni", data.get("sni", host))).strip() or host
     insecure = tls_obj.get("insecure", data.get("insecure", True))
 
     # 带宽
     bw_obj = data.get("bandwidth", {})
-    up_raw = bw_obj.get("up", data.get("up", "11 mbps"))
-    down_raw = bw_obj.get("down", data.get("down", "55 mbps"))
+    up_raw = bw_obj.get("up", data.get("up", "11 Mbps"))
+    down_raw = bw_obj.get("down", data.get("down", "55 Mbps"))
 
     up_str = f"{up_raw} Mbps" if isinstance(up_raw, (int, float)) else str(up_raw).strip()
     down_str = f"{down_raw} Mbps" if isinstance(down_raw, (int, float)) else str(down_raw).strip()
@@ -147,16 +152,34 @@ def parse_hy2_json_to_clash_proxy(json_str: str, node_index: int) -> Optional[Di
 
     node_name = f"HY2 节点 {node_index:02d} ({host})"
 
+    # 生成标准 hy2:// URI (Karing, v2rayNG, Sing-box, NekoBox 原生通用)
+    host_for_uri = f"[{host}]" if ":" in host else host
+    uri_params = []
+    if sni:
+        uri_params.append(f"sni={urllib.parse.quote(sni)}")
+    if insecure:
+        uri_params.append("insecure=1")
+    if obfs_password:
+        uri_params.append(f"obfs={obfs_type or 'salamander'}")
+        uri_params.append(f"obfs-password={urllib.parse.quote(obfs_password)}")
+
+    query_str = ("?" + "&".join(uri_params)) if uri_params else ""
+    tag_str = "#" + urllib.parse.quote(node_name)
+    hy2_uri = f"hy2://{urllib.parse.quote(auth_str)}@{host_for_uri}:{port}{query_str}{tag_str}"
+
     proxy_dict: Dict[str, Any] = {
         "name": node_name,
         "type": "hysteria2",
         "server": host,
         "port": port,
         "password": auth_str,
+        "auth": auth_str,
         "sni": sni,
         "skip-cert-verify": bool(insecure),
         "up": up_str,
-        "down": down_str
+        "down": down_str,
+        "fast-open": True,
+        "hy2_uri": hy2_uri
     }
 
     if obfs_type or obfs_password:
@@ -166,7 +189,7 @@ def parse_hy2_json_to_clash_proxy(json_str: str, node_index: int) -> Optional[Di
     return proxy_dict
 
 def generate_hy2_clash_yaml(proxies: List[Dict[str, Any]]) -> str:
-    """生成完整的 Clash 订阅配置 YAML 文本 (严格兼容 Mihomo / Clash Meta / Stash / Shadowrocket)"""
+    """生成适用于 Karing / Clash Meta / Mihomo 的完整 Clash YAML 配置"""
     proxy_names = [p["name"] for p in proxies]
 
     def yaml_indent(items, spaces=6):
@@ -180,16 +203,18 @@ def generate_hy2_clash_yaml(proxies: List[Dict[str, Any]]) -> str:
         yaml_proxies_block += f"    server: \"{p['server']}\"\n"
         yaml_proxies_block += f"    port: {p['port']}\n"
         yaml_proxies_block += f"    password: \"{p['password']}\"\n"
+        yaml_proxies_block += f"    auth: \"{p['auth']}\"\n"
         yaml_proxies_block += f"    sni: \"{p['sni']}\"\n"
         yaml_proxies_block += f"    skip-cert-verify: {str(p['skip-cert-verify']).lower()}\n"
         yaml_proxies_block += f"    up: \"{p['up']}\"\n"
         yaml_proxies_block += f"    down: \"{p['down']}\"\n"
+        yaml_proxies_block += f"    fast-open: true\n"
         if "obfs" in p and p["obfs"]:
             yaml_proxies_block += f"    obfs: \"{p['obfs']}\"\n"
             yaml_proxies_block += f"    obfs-password: \"{p.get('obfs-password', '')}\"\n"
 
     template = f"""# =================================================================
-# Clash Hysteria 2 (HY2) 专用节点订阅配置文件
+# Karing & Clash Hysteria 2 (HY2) 专用节点订阅配置文件
 # 独立自动化更新于: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 # 节点总数: {len(proxies)} 个可用 Hysteria 2 节点
 # =================================================================
@@ -289,21 +314,16 @@ rules:
 
 def main():
     print("=" * 68)
-    print(">>> 开始执行 Clash Hysteria 2 (HY2) 独立订阅抓取与生成任务")
+    print(">>> 开始执行 Karing & Clash Hysteria 2 (HY2) 独立订阅抓取与生成任务")
     print(f">>> 执行时间: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 68)
 
     if not os.path.exists(URLS_FILE):
-        print(f"[!] 找不到 URL 列表文件: {URLS_FILE}，自动初始化...")
-        urls = [
-            f"https://gitlab.com/free9999/ipupdate/-/raw/master/backup/img/1/2/ip/hysteria2/{i}/config.json"
-            for i in range(1, 13)
-        ]
-        with open(URLS_FILE, "w", encoding="utf-8") as f:
-            f.write("\n".join(urls) + "\n")
-    else:
-        with open(URLS_FILE, "r", encoding="utf-8") as f:
-            urls = [line.strip() for line in f if line.strip() and not line.startswith("#")]
+        print(f"[!] 找不到 URL 列表文件: {URLS_FILE}")
+        sys.exit(1)
+
+    with open(URLS_FILE, "r", encoding="utf-8") as f:
+        urls = [line.strip() for line in f if line.strip() and not line.startswith("#")]
 
     print(f"[*] 从 {URLS_FILE} 中读取到 {len(urls)} 个 HY2 JSON 源")
     print()
@@ -333,17 +353,23 @@ def main():
         print("[!] 警告: 未能获取到任何有效 HY2 节点，保留现有配置以防被清空")
         sys.exit(0)
 
-    # 生成 Clash YAML
+    # 1. 生成 Clash YAML
     yaml_content = generate_hy2_clash_yaml(valid_proxies)
     with open(OUTPUT_YAML, "w", encoding="utf-8") as f:
         f.write(yaml_content)
     print(f"[✓] 成功生成 HY2 配置文件: {OUTPUT_YAML} ({len(yaml_content.encode('utf-8'))} 字节)")
 
-    # 生成 Base64
-    b64_content = base64.b64encode(yaml_content.encode("utf-8")).decode("utf-8")
+    # 2. 生成明文 hy2:// 节点链接列表
+    raw_links = "\n".join(p["hy2_uri"] for p in valid_proxies)
+    with open(OUTPUT_LINKS, "w", encoding="utf-8") as f:
+        f.write(raw_links)
+    print(f"[✓] 成功生成 HY2 明文节点链接文件: {OUTPUT_LINKS}")
+
+    # 3. 生成通用 Base64 订阅 (Karing/v2rayNG/Shadowrocket 原生秒解析)
+    b64_content = base64.b64encode(raw_links.encode("utf-8")).decode("utf-8")
     with open(OUTPUT_B64, "w", encoding="utf-8") as f:
         f.write(b64_content)
-    print(f"[✓] 成功生成 HY2 Base64 文件: {OUTPUT_B64} ({len(b64_content.encode('utf-8'))} 字节)")
+    print(f"[✓] 成功生成 HY2 Base64 订阅文件: {OUTPUT_B64} ({len(b64_content.encode('utf-8'))} 字节)")
 
     print("=" * 68)
     print("🎉 Hysteria 2 订阅构建全部完成！")
