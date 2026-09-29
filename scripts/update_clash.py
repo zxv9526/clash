@@ -23,9 +23,12 @@ import urllib.error
 try:
     import yaml
 except ImportError:
-    print("[!] 正在自动安装 PyYAML 依赖...")
-    os.system(f"{sys.executable} -m pip install pyyaml")
-    import yaml
+    try:
+        import subprocess
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "pyyaml"])
+        import yaml
+    except Exception:
+        yaml = None
 
 try:
     import requests
@@ -200,34 +203,131 @@ def main():
         print("[!] 错误: 未提取到任何有效节点，取消写入以防止破坏现有配置文件")
         sys.exit(1)
         
-    # 读取模板
-    with open(TEMPLATE_FILE, "r", encoding="utf-8") as f:
-        template_data = yaml.safe_load(f)
-        
-    # 1. 替换 proxies
-    template_data["proxies"] = extracted_nodes
-    node_names = [n["name"] for n in extracted_nodes]
-    
-    # 2. 注入到 proxy-groups
-    if "proxy-groups" in template_data and isinstance(template_data["proxy-groups"], list):
-        for group in template_data["proxy-groups"]:
-            group_name = group.get("name", "")
-            group_type = group.get("type", "")
-            current_proxies = group.get("proxies", [])
+    # 读取并处理模板写入输出文件
+    if yaml is not None:
+        with open(TEMPLATE_FILE, "r", encoding="utf-8") as f:
+            template_data = yaml.safe_load(f)
             
-            if group_type in ["select", "fallback", "url-test", "load-balance"]:
-                static_items = [
-                    p for p in current_proxies
-                    if not p.startswith("节点")
-                    and not "fanqiang" in p
-                    and not "github.com" in p
-                ]
-                group["proxies"] = list(dict.fromkeys(static_items + node_names))
-                print(f"   [+] 策略组已同步: {group_name} ({len(group['proxies'])} 项)")
+        template_data["proxies"] = extracted_nodes
+        node_names = [n["name"] for n in extracted_nodes]
+        
+        if "proxy-groups" in template_data and isinstance(template_data["proxy-groups"], list):
+            for group in template_data["proxy-groups"]:
+                group_name = group.get("name", "")
+                group_type = group.get("type", "")
+                current_proxies = group.get("proxies", [])
+                
+                if group_type in ["select", "fallback", "url-test", "load-balance"]:
+                    static_items = [
+                        p for p in current_proxies
+                        if not p.startswith("节点")
+                        and not "fanqiang" in p
+                        and not "github.com" in p
+                    ]
+                    group["proxies"] = list(dict.fromkeys(static_items + node_names))
+                    print(f"   [+] 策略组已同步: {group_name} ({len(group['proxies'])} 项)")
 
-    # 3. 写入输出文件 config.yaml
-    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
-        yaml.dump(template_data, f, allow_unicode=True, sort_keys=False, default_flow_style=False)
+        with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
+            yaml.dump(template_data, f, allow_unicode=True, sort_keys=False, default_flow_style=False)
+    else:
+        # 无 PyYAML 时的纯 Python 规则拼接兜底写入
+        proxy_names = [n["name"] for n in extracted_nodes]
+        def yaml_indent(items, spaces=6):
+            pad = " " * spaces
+            return "\n".join(f"{pad}- \"{item}\"" for item in items)
+
+        yaml_proxies_block = ""
+        for p in extracted_nodes:
+            yaml_proxies_block += f"  - name: \"{p.get('name')}\"\n"
+            yaml_proxies_block += f"    type: {p.get('type', 'hysteria')}\n"
+            yaml_proxies_block += f"    server: \"{p.get('server')}\"\n"
+            yaml_proxies_block += f"    port: {p.get('port')}\n"
+            if "password" in p:
+                yaml_proxies_block += f"    password: \"{p.get('password')}\"\n"
+            if "auth_str" in p or "auth" in p:
+                yaml_proxies_block += f"    auth: \"{p.get('auth', p.get('auth_str', ''))}\"\n"
+            if "sni" in p:
+                yaml_proxies_block += f"    sni: \"{p.get('sni')}\"\n"
+            if "skip-cert-verify" in p:
+                yaml_proxies_block += f"    skip-cert-verify: {str(p.get('skip-cert-verify')).lower()}\n"
+            if "up" in p:
+                yaml_proxies_block += f"    up: \"{p.get('up')}\"\n"
+            if "down" in p:
+                yaml_proxies_block += f"    down: \"{p.get('down')}\"\n"
+
+        template = f"""# =================================================================
+# Clash 混合 12 节点订阅配置文件
+# 独立自动化更新于: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())}
+# 节点总数: {len(extracted_nodes)} 个有效节点
+# =================================================================
+secret: github.com/Alvin9999-newpac/fanqiang
+mixed-port: 7890
+allow-lan: false
+mode: rule
+log-level: info
+ipv6: true
+
+dns:
+  enable: true
+  ipv6: true
+  nameserver:
+    - 119.29.29.29
+    - 223.5.5.5
+
+proxies:
+{yaml_proxies_block.rstrip()}
+
+proxy-groups:
+  - name: 🚀 节点选择
+    type: select
+    proxies:
+      - ♻️ 自动选择
+      - DIRECT
+{yaml_indent(proxy_names, 6)}
+  - name: ♻️ 自动选择
+    type: fallback
+    url: http://www.gstatic.com/generate_204
+    interval: 5
+    proxies:
+{yaml_indent(proxy_names, 6)}
+  - name: 🌍 国外媒体
+    type: select
+    proxies:
+      - 🚀 节点选择
+      - ♻️ 自动选择
+      - 🎯 全球直连
+{yaml_indent(proxy_names, 6)}
+  - name: 📲 电报信息
+    type: select
+    proxies:
+      - 🚀 节点选择
+      - 🎯 全球直连
+{yaml_indent(proxy_names, 6)}
+  - name: Ⓜ️ 微软服务
+    type: select
+    proxies:
+      - 🎯 全球直连
+      - 🚀 节点选择
+{yaml_indent(proxy_names, 6)}
+  - name: 🍎 苹果服务
+    type: select
+    proxies:
+      - 🚀 节点选择
+      - 🎯 全球直连
+{yaml_indent(proxy_names, 6)}
+  - name: 🎯 全球直连
+    type: select
+    proxies:
+      - DIRECT
+      - 🚀 节点选择
+      - ♻️ 自动选择
+{yaml_indent(proxy_names, 6)}
+
+rules:
+  - MATCH,🚀 节点选择
+"""
+        with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
+            f.write(template)
         
     # 4. 生成 Base64 编码文件 config.b64 便于特定客户端导入
     with open(OUTPUT_FILE, "rb") as f:

@@ -21,8 +21,6 @@ jobs:
   update-hy2-clash-config:
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE20: true
     steps:
       - name: 📥 检出仓库代码
         uses: actions/checkout@v4
@@ -48,7 +46,7 @@ jobs:
         id: check_changes
         run: |
           git status --porcelain
-          if [[ -n $(git status --porcelain hy2_config.yaml hy2_config.b64) ]]; then
+          if [[ -n $(git status --porcelain hy2_config.yaml hy2_config.b64 hy2_links.txt) ]]; then
             echo "has_changes=true" >> $GITHUB_OUTPUT
           else
             echo "has_changes=false" >> $GITHUB_OUTPUT
