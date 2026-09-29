@@ -290,6 +290,8 @@ jobs:
   update-clash-config:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE20: true
     steps:
       - name: 📥 检出仓库代码
         uses: actions/checkout@v4
