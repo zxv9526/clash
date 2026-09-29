@@ -2,5 +2,4 @@ hy2://dongtaiwang.com@[2001:bc8:32d7:17b::3]:22000?sni=www.microsoft.com&insecur
 hy2://dongtaiwang.com@[2001:bc8:32d7:17b::3]:22000?sni=www.microsoft.com&insecure=1#HY2%20%E8%8A%82%E7%82%B9%2002%20%282001%3Abc8%3A32d7%3A17b%3A%3A3%29
 hy2://dongtaiwang.com@[2001:bc8:32d7:17b::3]:22000?sni=www.microsoft.com&insecure=1#HY2%20%E8%8A%82%E7%82%B9%2003%20%282001%3Abc8%3A32d7%3A17b%3A%3A3%29
 hy2://dongtaiwang.com@[2001:bc8:32d7:17b::3]:22000?sni=www.microsoft.com&insecure=1#HY2%20%E8%8A%82%E7%82%B9%2004%20%282001%3Abc8%3A32d7%3A17b%3A%3A3%29
-hy2://dongtaiwang.com@[2001:bc8:32d7:17b::8]:22000?sni=apple.com&insecure=1#HY2%20%E8%8A%82%E7%82%B9%2005%20%282001%3Abc8%3A32d7%3A17b%3A%3A8%29
-hy2://dongtaiwang.com@[2001:bc8:32d7:302::11]:20088?sni=apple.com&insecure=1#HY2%20%E8%8A%82%E7%82%B9%2006%20%282001%3Abc8%3A32d7%3A302%3A%3A11%29
+hy2://dongtaiwang.com@[2001:bc8:32d7:17b::8]:22000?sni=www.microsoft.com&insecure=1#HY2%20%E8%8A%82%E7%82%B9%2005%20%282001%3Abc8%3A32d7%3A17b%3A%3A8%29
