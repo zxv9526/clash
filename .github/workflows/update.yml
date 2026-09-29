@@ -63,4 +63,5 @@ jobs:
           git config --local user.name "github-actions[bot]"
           git add config.yaml config.b64
           git commit -m "chore(auto): 自动更新 12 节点订阅配置 [skip ci] ($(date +'%Y-%m-%d %H:%M:%S'))" || true
+          git pull --rebase || true
           git push origin HEAD || git push
