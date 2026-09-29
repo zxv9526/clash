@@ -1,0 +1,6 @@
+{
+  "name": "Clash Workflow Hub - 12节点自动聚合生成工作流",
+  "description": "基于 GitHub Actions 的 Clash / Mihomo 订阅自动更新工作流，从 txt 提取 12 个 URL 并解析节点，按 yaml 模板合并生成配置，支持在线调试、参数定制与一键导出完整工作流源码。",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
