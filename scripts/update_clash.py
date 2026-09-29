@@ -2,12 +2,11 @@
 # -*- coding: utf-8 -*-
 """
 ====================================================================
-Clash / Mihomo 12节点订阅自动聚合与配置文件生成器
-- 自动从 urls.txt 中逐行读取 12 个订阅 URL
-- 支持 GitLab 主地址 + 备用镜像双源容灾
-- 自动提取 proxies 节点信息并规范化重命名
-- 自动合并到 template.yaml 并同步策略组
-- 额外输出 Base64 编码订阅文件 (config.b64) 便于小火箭等移动端导入
+Clash / Mihomo 纯 IPv4 节点订阅自动聚合与配置文件生成器
+- 自动从 urls.txt 中读取订阅源
+- 支持主地址 + 备用镜像双源容灾
+- **严格过滤 IPv6 节点，仅保留 100% 纯 IPv4 节点**
+- 禁用全局 IPv6 (`ipv6: false`)，完美适配无 IPv6 的宽带网络
 ====================================================================
 """
 
@@ -16,263 +15,220 @@ import sys
 import time
 import base64
 import re
+import json
+import urllib.parse
 import urllib.request
 import urllib.error
 
-# 尝试导入 requests 与 yaml
-try:
-    import yaml
-except ImportError:
-    try:
-        import subprocess
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "pyyaml"])
-        import yaml
-    except Exception:
-        yaml = None
-
-try:
-    import requests
-    import urllib3
-    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-    HAS_REQUESTS = True
-except ImportError:
-    HAS_REQUESTS = False
-
 # ==================== 配置参数 ====================
 URLS_FILE = "urls.txt"
-TEMPLATE_FILE = "template.yaml"
 OUTPUT_FILE = "config.yaml"
 OUTPUT_B64_FILE = "config.b64"
-TIMEOUT = 15
+TIMEOUT = 12
 MAX_RETRIES = 2
-USER_AGENT = "ClashForWindows/0.20.39 mihomo ClashMeta Wget/1.21"
+USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 
-def fetch_url_content(url, retries=MAX_RETRIES):
-    """通用网络请求函数，优先 requests 备用 urllib"""
+DEFAULT_HEADERS = {
+    "User-Agent": USER_AGENT,
+    "Accept": "*/*",
+}
+
+def fetch_url(url, retries=MAX_RETRIES):
+    """带重试的 HTTP 获取函数"""
     if not url or not url.startswith("http"):
         return None
 
-    headers = {
-        "User-Agent": USER_AGENT,
-        "Accept": "*/*",
-        "Connection": "close"
-    }
-
     for attempt in range(1, retries + 1):
         try:
-            if HAS_REQUESTS:
-                resp = requests.get(url, headers=headers, timeout=TIMEOUT, verify=False)
-                if resp.status_code == 200:
-                    resp.encoding = resp.apparent_encoding or "utf-8"
-                    text = resp.text.strip()
-                    if len(text) > 10:
-                        return text
-            else:
-                req = urllib.request.Request(url, headers=headers)
-                with urllib.request.urlopen(req, timeout=TIMEOUT) as response:
-                    if response.status == 200:
-                        content = response.read().decode("utf-8", errors="ignore").strip()
-                        if len(content) > 10:
-                            return content
+            req = urllib.request.Request(url, headers=DEFAULT_HEADERS)
+            with urllib.request.urlopen(req, timeout=TIMEOUT) as response:
+                if response.status == 200:
+                    content = response.read().decode("utf-8", errors="ignore").strip()
+                    if len(content) > 10:
+                        return content
         except Exception:
             if attempt < retries:
                 time.sleep(1)
     return None
 
-def fallback_regex_extract_node(content, index):
-    """正则兜底提取节点参数"""
-    try:
-        server_match = re.search(r'server:\s*["\']?([^\s"\'\n]+)', content, re.I)
-        port_match = re.search(r'port:\s*(\d+)', content, re.I)
-        type_match = re.search(r'type:\s*["\']?([^\s"\'\n]+)', content, re.I)
-        
-        if server_match and port_match and type_match:
-            password_match = re.search(r'password:\s*["\']?([^\s"\'\n]+)', content, re.I)
-            sni_match = re.search(r'sni:\s*["\']?([^\s"\'\n]+)', content, re.I)
-            skip_match = re.search(r'skip-cert-verify:\s*(true|false)', content, re.I)
-            up_match = re.search(r'up:\s*["\']?([^"\'\n]+)["\']?', content, re.I)
-            down_match = re.search(r'down:\s*["\']?([^"\'\n]+)["\']?', content, re.I)
-            
-            node = {
-                "name": f"节点 {index:02d}",
-                "type": type_match.group(1).strip().lower(),
-                "server": server_match.group(1).strip(),
-                "port": int(port_match.group(1).strip()),
-                "skip-cert-verify": True if not skip_match else (skip_match.group(1).lower() == "true")
-            }
-            if password_match:
-                node["password"] = password_match.group(1).strip()
-            if sni_match:
-                node["sni"] = sni_match.group(1).strip()
-            if up_match:
-                node["up"] = up_match.group(1).strip()
-            if down_match:
-                node["down"] = down_match.group(1).strip()
-            return node
-    except Exception:
-        pass
-    return None
+def is_ipv6_host(host: str) -> bool:
+    """判断地址是否为 IPv6 地址"""
+    if not host:
+        return False
+    clean_host = host.strip().lstrip("[").rstrip("]")
+    return ":" in clean_host
 
-def extract_proxy_from_yaml(content, index):
-    """从下载的 YAML 中解析节点信息"""
+def parse_proxy_from_content(content: str, index: int) -> dict:
+    """从下载的文本 (JSON 或 YAML) 中精确提取代理节点信息，并排除 IPv6"""
     if not content:
         return None
-    try:
-        data = yaml.safe_load(content)
-        if not data:
-            return fallback_regex_extract_node(content, index)
-            
-        proxies = []
-        if isinstance(data, dict):
-            if "proxies" in data and isinstance(data["proxies"], list) and len(data["proxies"]) > 0:
-                proxies = data["proxies"]
-            elif "server" in data and "type" in data:
-                proxies = [data]
-                
-        if proxies:
-            node = proxies[0]
-            pad_index = f"{index:02d}"
-            protocol = str(node.get("type", "HYSTERIA2")).upper()
-            server_ip = str(node.get("server", ""))
-            
-            node_name = f"节点 {pad_index} [{protocol}] ({server_ip})"
-            node["name"] = node_name
-            return node
-    except Exception:
-        return fallback_regex_extract_node(content, index)
-    return None
 
-def main():
-    print("=" * 65)
-    print(">>> 开始执行 Clash 12节点订阅聚合与工作流生成任务")
-    print(f">>> 当前时间: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())}")
-    print("=" * 65)
-    
-    if not os.path.exists(URLS_FILE):
-        print(f"[!] 找不到 URL 列表文件: {URLS_FILE}")
-        sys.exit(1)
-        
-    if not os.path.exists(TEMPLATE_FILE):
-        print(f"[!] 找不到 YAML 模板文件: {TEMPLATE_FILE}")
-        sys.exit(1)
-        
-    # 读取 urls.txt
-    url_lines = []
-    with open(URLS_FILE, "r", encoding="utf-8") as f:
-        for line in f:
-            line = line.strip()
-            if line and not line.startswith("#"):
-                url_lines.append(line)
-                
-    print(f"[*] 从 {URLS_FILE} 中读取到 {len(url_lines)} 个订阅 URL 源\n")
-    
-    extracted_nodes = []
-    
-    for idx, line in enumerate(url_lines, start=1):
-        parts = [p.strip() for p in line.split("|") if p.strip()]
-        primary_url = parts[0] if len(parts) > 0 else None
-        mirror_url = parts[1] if len(parts) > 1 else None
-        
-        print(f"[{idx:02d}/{len(url_lines):02d}] 正在提取节点 #{idx:02d}...")
-        content = None
-        used_src = "主地址"
-        
-        if primary_url:
-            content = fetch_url_content(primary_url)
-            
-        if not content and mirror_url:
-            print(f"   [~] 主地址无响应，尝试备用镜像源: {mirror_url}")
-            content = fetch_url_content(mirror_url)
-            used_src = "备用镜像"
-            
-        if content:
-            node = extract_proxy_from_yaml(content, idx)
-            if node:
-                print(f"   [✓] 提取成功 ({used_src}): {node.get('name')} -> {node.get('server')}:{node.get('port')} [{node.get('type').upper()}]")
-                extracted_nodes.append(node)
-            else:
-                print(f"   [✗] 提取失败: 未能在返回内容中找到有效 proxies 节点")
+    # 1. 尝试匹配内嵌 JSON 格式，如 {"name":"洛杉矶1", "server":"173.234.25.51", ...}
+    json_m = re.search(r'\{[^\}]*["\']server["\']\s*:\s*["\']([^\"]+)["\'][^\}]*\}', content)
+    data = None
+    if json_m:
+        try:
+            data = json.loads(json_m.group(0))
+        except Exception:
+            data = None
+
+    if not data:
+        # 尝试将全文解析为完整 JSON
+        try:
+            data = json.loads(content)
+        except Exception:
+            data = None
+
+    if data and isinstance(data, dict):
+        server_raw = str(data.get("server", "")).strip()
+        if not server_raw or server_raw == "-":
+            return None
+
+        if server_raw.startswith("[") and "]:" in server_raw:
+            parts = server_raw.split("]:")
+            server = parts[0].lstrip("[").strip()
+            port = int(parts[1].strip())
+        elif ":" in server_raw and not is_ipv6_host(server_raw):
+            parts = server_raw.rsplit(":", 1)
+            server = parts[0].strip()
+            port = int(parts[1].strip())
         else:
-            print(f"   [✗] 提取失败: 节点 URL 连接超时或无法访问")
+            server = server_raw
+            port = int(data.get("port", 7890))
 
-    print("\n" + "-" * 65)
-    print(f"[*] 节点提取总结: 成功 {len(extracted_nodes)} / {len(url_lines)} 个有效节点")
-    print("-" * 65)
-    
-    if not extracted_nodes:
-        print("[!] 错误: 未提取到任何有效节点，取消写入以防止破坏现有配置文件")
-        sys.exit(1)
-        
-    # 读取并处理模板写入输出文件
-    if yaml is not None:
-        with open(TEMPLATE_FILE, "r", encoding="utf-8") as f:
-            template_data = yaml.safe_load(f)
-            
-        template_data["proxies"] = extracted_nodes
-        node_names = [n["name"] for n in extracted_nodes]
-        
-        if "proxy-groups" in template_data and isinstance(template_data["proxy-groups"], list):
-            for group in template_data["proxy-groups"]:
-                group_name = group.get("name", "")
-                group_type = group.get("type", "")
-                current_proxies = group.get("proxies", [])
-                
-                if group_type in ["select", "fallback", "url-test", "load-balance"]:
-                    static_items = [
-                        p for p in current_proxies
-                        if not p.startswith("节点")
-                        and not "fanqiang" in p
-                        and not "github.com" in p
-                    ]
-                    group["proxies"] = list(dict.fromkeys(static_items + node_names))
-                    print(f"   [+] 策略组已同步: {group_name} ({len(group['proxies'])} 项)")
+        if is_ipv6_host(server):
+            return None
 
-        with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
-            yaml.dump(template_data, f, allow_unicode=True, sort_keys=False, default_flow_style=False)
-    else:
-        # 无 PyYAML 时的纯 Python 规则拼接兜底写入
-        proxy_names = [n["name"] for n in extracted_nodes]
-        def yaml_indent(items, spaces=6):
-            pad = " " * spaces
-            return "\n".join(f"{pad}- \"{item}\"" for item in items)
+        ptype = str(data.get("type", "hysteria")).lower()
+        auth_val = str(data.get("auth_str", data.get("auth", data.get("password", "dongtaiwang.com")))).strip()
+        sni_val = str(data.get("sni", data.get("server_name", "www.microsoft.com"))).strip() or "www.microsoft.com"
+        if sni_val in ["apple.com", "bing.com"]:
+            sni_val = "www.microsoft.com"
 
-        yaml_proxies_block = ""
-        for p in extracted_nodes:
-            yaml_proxies_block += f"  - name: \"{p.get('name')}\"\n"
-            yaml_proxies_block += f"    type: {p.get('type', 'hysteria')}\n"
-            yaml_proxies_block += f"    server: \"{p.get('server')}\"\n"
-            yaml_proxies_block += f"    port: {p.get('port')}\n"
-            if "password" in p:
-                yaml_proxies_block += f"    password: \"{p.get('password')}\"\n"
-            if "auth_str" in p or "auth" in p:
-                yaml_proxies_block += f"    auth: \"{p.get('auth', p.get('auth_str', ''))}\"\n"
-            if "sni" in p:
-                yaml_proxies_block += f"    sni: \"{p.get('sni')}\"\n"
-            if "skip-cert-verify" in p:
-                yaml_proxies_block += f"    skip-cert-verify: {str(p.get('skip-cert-verify')).lower()}\n"
-            if "up" in p:
-                yaml_proxies_block += f"    up: \"{p.get('up')}\"\n"
-            if "down" in p:
-                yaml_proxies_block += f"    down: \"{p.get('down')}\"\n"
+        node_name = f"节点 {index:02d} [{ptype.upper()}] ({server})"
 
-        template = f"""# =================================================================
-# Clash 混合 12 节点订阅配置文件
-# 独立自动化更新于: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())}
-# 节点总数: {len(extracted_nodes)} 个有效节点
+        proxy = {
+            "name": node_name,
+            "type": ptype,
+            "server": server,
+            "port": port,
+            "password": auth_val,
+            "auth": auth_val,
+            "sni": sni_val,
+            "skip-cert-verify": True,
+            "up": "11 Mbps",
+            "down": "55 Mbps",
+            "fast-open": True
+        }
+
+        if ptype == "hysteria":
+            proxy["auth-str"] = auth_val
+            proxy["protocol"] = "udp"
+            proxy["alpn"] = ["h3"]
+
+        return proxy
+
+    # 2. 如果非内嵌 JSON，用正则针对 proxies 局部块匹配
+    proxies_block_m = re.search(r'proxies:\s*\n?\s*-\s*([^\n]+(?:\n\s+[^\n]+)*)', content)
+    target_text = proxies_block_m.group(1) if proxies_block_m else content
+
+    server_m = re.search(r'server:\s*["\']?([^\s"\',\}]+)', target_text, re.I)
+    port_m = re.search(r'port:\s*(\d+)', target_text, re.I)
+    type_m = re.search(r'type:\s*["\']?([^\s"\',\}]+)', target_text, re.I)
+
+    if not (server_m and port_m):
+        return None
+
+    server = server_m.group(1).strip().lstrip("[").rstrip("]")
+    if server == "-" or is_ipv6_host(server):
+        return None
+
+    port = int(port_m.group(1).strip())
+    ptype = type_m.group(1).strip().lower() if type_m else "hysteria"
+
+    auth_m = re.search(r'(?:auth[-_]str|auth|password):\s*["\']?([^\s"\',\}]+)', target_text, re.I)
+    sni_m = re.search(r'(?:sni|server_name):\s*["\']?([^\s"\',\}]+)', target_text, re.I)
+
+    auth_val = auth_m.group(1).strip() if auth_m else "dongtaiwang.com"
+    sni_val = sni_m.group(1).strip() if sni_m else "www.microsoft.com"
+    if sni_val in ["apple.com", "bing.com"]:
+        sni_val = "www.microsoft.com"
+
+    node_name = f"节点 {index:02d} [{ptype.upper()}] ({server})"
+
+    proxy = {
+        "name": node_name,
+        "type": ptype,
+        "server": server,
+        "port": port,
+        "password": auth_val,
+        "auth": auth_val,
+        "sni": sni_val,
+        "skip-cert-verify": True,
+        "up": "11 Mbps",
+        "down": "55 Mbps",
+        "fast-open": True
+    }
+
+    if ptype == "hysteria":
+        proxy["auth-str"] = auth_val
+        proxy["protocol"] = "udp"
+        proxy["alpn"] = ["h3"]
+
+    return proxy
+
+def generate_clash_yaml(proxies: list) -> str:
+    """生成 100% 禁用 IPv6 的 Clash YAML 纯 IPv4 配置文件"""
+    proxy_names = [p["name"] for p in proxies]
+
+    def yaml_indent(items, spaces=6):
+        pad = " " * spaces
+        return "\n".join(f"{pad}- \"{item}\"" for item in items)
+
+    yaml_proxies_block = ""
+    for p in proxies:
+        yaml_proxies_block += f"  - name: \"{p['name']}\"\n"
+        yaml_proxies_block += f"    type: {p['type']}\n"
+        yaml_proxies_block += f"    server: \"{p['server']}\"\n"
+        yaml_proxies_block += f"    port: {p['port']}\n"
+        if p["type"] == "hysteria":
+            yaml_proxies_block += f"    auth-str: \"{p['auth-str']}\"\n"
+            yaml_proxies_block += f"    protocol: udp\n"
+            yaml_proxies_block += f"    alpn:\n      - h3\n"
+        else:
+            yaml_proxies_block += f"    password: \"{p['password']}\"\n"
+            yaml_proxies_block += f"    auth: \"{p['auth']}\"\n"
+
+        yaml_proxies_block += f"    sni: \"{p['sni']}\"\n"
+        yaml_proxies_block += f"    skip-cert-verify: {str(p['skip-cert-verify']).lower()}\n"
+        yaml_proxies_block += f"    up: \"{p['up']}\"\n"
+        yaml_proxies_block += f"    down: \"{p['down']}\"\n"
+        yaml_proxies_block += f"    fast-open: true\n"
+
+    template = f"""# =================================================================
+# Clash / Mihomo 纯 IPv4 专用订阅配置文件 (已完全禁用 IPv6)
+# 更新时间: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())}
+# 可用纯 IPv4 节点总数: {len(proxies)} 个
 # =================================================================
 secret: github.com/Alvin9999-newpac/fanqiang
 mixed-port: 7890
 allow-lan: false
 mode: rule
 log-level: info
-ipv6: true
+ipv6: false
 
 dns:
   enable: true
-  ipv6: true
+  ipv6: false
   nameserver:
-    - 119.29.29.29
     - 223.5.5.5
+    - 119.29.29.29
+    - 114.114.114.114
+  fallback-filter:
+    geoip: false
+    ipcidr:
+      - 240.0.0.0/4
+      - 0.0.0.0/32
 
 proxies:
 {yaml_proxies_block.rstrip()}
@@ -322,22 +278,93 @@ proxy-groups:
       - 🚀 节点选择
       - ♻️ 自动选择
 {yaml_indent(proxy_names, 6)}
+  - name: 🛑 全球拦截
+    type: select
+    proxies:
+      - REJECT
+      - DIRECT
+{yaml_indent(proxy_names, 6)}
+  - name: 🍃 应用净化
+    type: select
+    proxies:
+      - REJECT
+      - DIRECT
+{yaml_indent(proxy_names, 6)}
+  - name: 🐟 漏网之鱼
+    type: select
+    proxies:
+      - 🚀 节点选择
+      - 🎯 全球直连
+      - ♻️ 自动选择
+{yaml_indent(proxy_names, 6)}
 
 rules:
   - MATCH,🚀 节点选择
 """
-        with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
-            f.write(template)
-        
-    # 4. 生成 Base64 编码文件 config.b64 便于特定客户端导入
-    with open(OUTPUT_FILE, "rb") as f:
-        encoded_b64 = base64.b64encode(f.read()).decode("utf-8")
-    with open(OUTPUT_B64_FILE, "w", encoding="utf-8") as f:
-        f.write(encoded_b64)
-        
-    print(f"\n[✓] 成功生成配置文件: {OUTPUT_FILE} (文件大小: {os.path.getsize(OUTPUT_FILE)} 字节)")
-    print(f"[✓] 成功生成 Base64 文件: {OUTPUT_B64_FILE} (文件大小: {os.path.getsize(OUTPUT_B64_FILE)} 字节)")
+    return template
+
+def main():
     print("=" * 65)
+    print(">>> 开始执行 Clash 纯 IPv4 节点订阅聚合生成任务")
+    print(f">>> 当前时间: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())}")
+    print("=" * 65)
+
+    if not os.path.exists(URLS_FILE):
+        print(f"[!] 错误: {URLS_FILE} 不存在")
+        sys.exit(1)
+
+    with open(URLS_FILE, "r", encoding="utf-8") as f:
+        raw_lines = [line.strip() for line in f if line.strip() and not line.startswith("#")]
+
+    proxies = []
+    node_counter = 1
+
+    for idx, line in enumerate(raw_lines, 1):
+        urls = [u.strip() for u in line.split("|") if u.strip()]
+        if not urls:
+            continue
+
+        print(f"[{idx:02d}/{len(raw_lines):02d}] 正在提取纯 IPv4 节点 #{idx:02d}...", end="", flush=True)
+        content = None
+        for u in urls:
+            content = fetch_url(u)
+            if content:
+                break
+
+        if not content:
+            print(" [✗] 提取失败: 超时或链接无法连通")
+            continue
+
+        proxy = parse_proxy_from_content(content, node_counter)
+        if proxy:
+            proxies.append(proxy)
+            print(f" [✓] 提取成功: {proxy['name']} -> {proxy['server']}:{proxy['port']}")
+            node_counter += 1
+        else:
+            print(" [✗] 节点跳过 (已过滤的 IPv6 节点或无效无响应节点)")
+
+    print("-" * 65)
+    print(f"[*] IPv4 节点提取总结: 成功获取 {len(proxies)} 个纯 IPv4 有效节点")
+    print("-" * 65)
+
+    if not proxies:
+        print("[!] 警告: 未能获取到任何 IPv4 节点")
+        sys.exit(0)
+
+    # 1. 生成 YAML
+    yaml_text = generate_clash_yaml(proxies)
+    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
+        f.write(yaml_text)
+    print(f"[✓] 成功生成纯 IPv4 配置文件: {OUTPUT_FILE}")
+
+    # 2. 生成 Base64 订阅
+    b64_text = base64.b64encode(yaml_text.encode("utf-8")).decode("utf-8")
+    with open(OUTPUT_B64_FILE, "w", encoding="utf-8") as f:
+        f.write(b64_text)
+    print(f"[✓] 成功生成纯 IPv4 Base64 文件: {OUTPUT_B64_FILE}")
+
+    print("=" * 65)
+    print("🎉 Clash 纯 IPv4 订阅生成完成！")
 
 if __name__ == "__main__":
     main()

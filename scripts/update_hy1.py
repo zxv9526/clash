@@ -2,10 +2,10 @@
 # -*- coding: utf-8 -*-
 """
 =============================================================================
-Clash Hysteria 1 (HY1) 独立节点自动化聚合与生成脚本
-- 数据源：urls_hy1.txt (包含 12 个 Hysteria 1 JSON 配置文件地址)
-- 独立输出：hy1_config.yaml 与 hy1_config.b64 (与主订阅完全隔离)
-- 特性：智能容灾、自动防重名、策略组动态注入、静默告警抑制
+Clash Hysteria 1 (HY1) 纯 IPv4 独立节点自动化聚合与生成脚本
+- 数据源：urls_hy1.txt
+- 核心规则：**严格过滤 IPv6，仅保留纯 IPv4 节点**
+- 独立输出：hy1_config.yaml 与 hy1_config.b64
 =============================================================================
 """
 
@@ -15,22 +15,9 @@ import json
 import base64
 import re
 import datetime
+import urllib.request
+import ssl
 from typing import List, Dict, Any, Optional
-
-try:
-    import yaml
-except ImportError:
-    yaml = None
-
-try:
-    import requests
-    import urllib3
-    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-    HAS_REQUESTS = True
-except ImportError:
-    HAS_REQUESTS = False
-    import urllib.request
-    import ssl
 
 TIMEOUT = 12
 MAX_RETRIES = 2
@@ -41,7 +28,6 @@ URLS_FILE = "urls_hy1.txt"
 DEFAULT_HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     "Accept": "application/json, text/plain, */*",
-    "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8"
 }
 
 def get_backup_url(primary_url: str) -> Optional[str]:
@@ -61,42 +47,34 @@ def fetch_url_content(url: str) -> Optional[str]:
         urls_to_try.append(backup)
 
     for idx, target_url in enumerate(urls_to_try):
-        is_backup = idx > 0
         for attempt in range(1, MAX_RETRIES + 1):
             try:
-                if HAS_REQUESTS:
-                    res = requests.get(
-                        target_url,
-                        headers=DEFAULT_HEADERS,
-                        timeout=TIMEOUT,
-                        verify=False
-                    )
-                    if res.status_code == 200 and res.text.strip():
-                        return res.text
-                else:
-                    ctx = ssl.create_default_context()
-                    ctx.check_hostname = False
-                    ctx.verify_mode = ssl.CERT_NONE
-                    req = urllib.request.Request(target_url, headers=DEFAULT_HEADERS)
-                    with urllib.request.urlopen(req, timeout=TIMEOUT, context=ctx) as response:
-                        if response.status == 200:
-                            content = response.read().decode('utf-8', errors='ignore')
-                            if content.strip():
-                                return content
+                ctx = ssl.create_default_context()
+                ctx.check_hostname = False
+                ctx.verify_mode = ssl.CERT_NONE
+                req = urllib.request.Request(target_url, headers=DEFAULT_HEADERS)
+                with urllib.request.urlopen(req, timeout=TIMEOUT, context=ctx) as response:
+                    if response.status == 200:
+                        content = response.read().decode('utf-8', errors='ignore')
+                        if content.strip():
+                            return content
             except Exception:
                 pass
 
-        if not is_backup and backup:
-            print(f"   [~] HY1 主地址无响应，尝试备用镜像源: {backup}")
-
     return None
 
+def is_ipv6_host(host: str) -> bool:
+    """判断地址是否包含 IPv6"""
+    if not host:
+        return False
+    clean = host.strip().lstrip("[").rstrip("]")
+    return ":" in clean
+
 def parse_hy1_json_to_clash_proxy(json_str: str, node_index: int) -> Optional[Dict[str, Any]]:
-    """解析 Hysteria 1 JSON 配置为 Clash 标准 Hysteria 节点"""
+    """解析 Hysteria 1 JSON 配置为 Clash 标准 Hysteria 节点 (排除 IPv6)"""
     try:
         data = json.loads(json_str.strip())
     except Exception:
-        # 尝试正则提取关键 JSON 块
         m = re.search(r'\{[\s\S]*"server"[\s\S]*\}', json_str)
         if m:
             try:
@@ -110,7 +88,6 @@ def parse_hy1_json_to_clash_proxy(json_str: str, node_index: int) -> Optional[Di
     if not server_raw or ":" not in server_raw:
         return None
 
-    # 解析 host 和 port (支持 IPv6 [::]:port 和 IPv4:port)
     if server_raw.startswith("[") and "]:" in server_raw:
         parts = server_raw.split("]:")
         host = parts[0].lstrip("[")
@@ -120,15 +97,20 @@ def parse_hy1_json_to_clash_proxy(json_str: str, node_index: int) -> Optional[Di
         host = parts[0]
         port = int(parts[1])
 
-    auth_str = str(data.get("auth_str", data.get("auth", ""))).strip()
-    sni = str(data.get("server_name", data.get("sni", "bing.com"))).strip()
+    # 🛑 **严格过滤 IPv6 地址**
+    if is_ipv6_host(host):
+        return None
+
+    auth_str = str(data.get("auth_str", data.get("auth", "dongtaiwang.com"))).strip()
+    sni = str(data.get("server_name", data.get("sni", "www.microsoft.com"))).strip()
+    if sni in ["apple.com", "bing.com"]:
+        sni = "www.microsoft.com"
+
     up_mbps = data.get("up_mbps", 11)
     down_mbps = data.get("down_mbps", 55)
     insecure = data.get("insecure", True)
     alpn = data.get("alpn", "h3")
     alpn_list = [alpn] if isinstance(alpn, str) else list(alpn)
-    protocol = str(data.get("protocol", "udp")).strip()
-    obfs = data.get("obfs", "")
 
     node_name = f"HY1 节点 {node_index:02d} ({host})"
 
@@ -141,56 +123,54 @@ def parse_hy1_json_to_clash_proxy(json_str: str, node_index: int) -> Optional[Di
         "sni": sni,
         "skip-cert-verify": bool(insecure),
         "alpn": alpn_list,
-        "protocol": protocol,
+        "protocol": "udp",
         "up": f"{up_mbps} Mbps",
         "down": f"{down_mbps} Mbps"
     }
 
-    if obfs:
-        proxy_dict["obfs"] = obfs
-
     return proxy_dict
 
 def generate_hy1_clash_yaml(proxies: List[Dict[str, Any]]) -> str:
-    """生成完整的 Clash 订阅配置 YAML 文本"""
+    """生成适用于 Karing / Clash Meta 的纯 IPv4 HY1 配置文件"""
     proxy_names = [p["name"] for p in proxies]
 
     def yaml_indent(items, spaces=6):
         pad = " " * spaces
-        return "\n".join(f"{pad}- {item}" for item in items)
+        return "\n".join(f"{pad}- \"{item}\"" for item in items)
 
     yaml_proxies_block = ""
     for p in proxies:
-        yaml_proxies_block += f"  - name: {p['name']}\n"
+        yaml_proxies_block += f"  - name: \"{p['name']}\"\n"
         yaml_proxies_block += f"    type: {p['type']}\n"
-        yaml_proxies_block += f"    server: {p['server']}\n"
+        yaml_proxies_block += f"    server: \"{p['server']}\"\n"
         yaml_proxies_block += f"    port: {p['port']}\n"
-        yaml_proxies_block += f"    auth-str: {p['auth-str']}\n"
-        yaml_proxies_block += f"    sni: {p['sni']}\n"
+        yaml_proxies_block += f"    auth-str: \"{p['auth-str']}\"\n"
+        yaml_proxies_block += f"    sni: \"{p['sni']}\"\n"
         yaml_proxies_block += f"    skip-cert-verify: {str(p['skip-cert-verify']).lower()}\n"
-        yaml_proxies_block += f"    alpn:\n"
-        for alp in p['alpn']:
-            yaml_proxies_block += f"      - {alp}\n"
-        yaml_proxies_block += f"    protocol: {p['protocol']}\n"
-        yaml_proxies_block += f"    up: {p['up']}\n"
-        yaml_proxies_block += f"    down: {p['down']}\n"
-        if "obfs" in p and p["obfs"]:
-            yaml_proxies_block += f"    obfs: {p['obfs']}\n"
+        yaml_proxies_block += f"    alpn:\n      - h3\n"
+        yaml_proxies_block += f"    protocol: udp\n"
+        yaml_proxies_block += f"    up: \"{p['up']}\"\n"
+        yaml_proxies_block += f"    down: \"{p['down']}\"\n"
 
     template = f"""# =================================================================
-# Clash Hysteria 1 (HY1) 专用节点订阅配置文件
-# 独立自动化更新于: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
-# 节点总数: {len(proxies)} 个可用 Hysteria 1 节点
+# Clash Hysteria 1 (HY1) 纯 IPv4 专用节点订阅配置文件 (已禁用 IPv6)
+# 自动化更新时间: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+# 纯 IPv4 HY1 节点总数: {len(proxies)} 个
 # =================================================================
 secret: github.com/Alvin9999-newpac/fanqiang
 mixed-port: 7890
 allow-lan: false
+mode: rule
 log-level: info
+ipv6: false
+
 dns:
-  enabled: true
+  enable: true
+  ipv6: false
   nameserver:
-    - 119.29.29.29
     - 223.5.5.5
+    - 119.29.29.29
+    - 114.114.114.114
   fallback-filter:
     geoip: false
     ipcidr:
@@ -209,7 +189,7 @@ proxy-groups:
 {yaml_indent(proxy_names, 6)}
   - name: ♻️ 自动选择
     type: fallback
-    url: https://www.gstatic.com/generate_204
+    url: http://www.gstatic.com/generate_204
     interval: 5
     proxies:
 {yaml_indent(proxy_names, 6)}
@@ -272,32 +252,24 @@ rules:
 
 def main():
     print("=" * 68)
-    print(">>> 开始执行 Clash Hysteria 1 (HY1) 独立订阅抓取与生成任务")
+    print(">>> 开始执行 Clash Hysteria 1 (HY1) 纯 IPv4 订阅抓取生成任务")
     print(f">>> 执行时间: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 68)
 
     if not os.path.exists(URLS_FILE):
-        print(f"[!] 找不到 URL 列表文件: {URLS_FILE}，自动初始化...")
-        urls = [
-            f"https://gitlab.com/free9999/ipupdate/-/raw/master/backup/img/1/2/ip/hysteria/{i}/config.json"
-            for i in range(1, 13)
-        ]
-        with open(URLS_FILE, "w", encoding="utf-8") as f:
-            f.write("\n".join(urls) + "\n")
-    else:
-        with open(URLS_FILE, "r", encoding="utf-8") as f:
-            urls = [line.strip() for line in f if line.strip() and not line.startswith("#")]
+        print(f"[!] 找不到 URL 列表文件: {URLS_FILE}")
+        sys.exit(1)
 
-    print(f"[*] 从 {URLS_FILE} 中读取到 {len(urls)} 个 HY1 JSON 源")
-    print()
+    with open(URLS_FILE, "r", encoding="utf-8") as f:
+        urls = [line.strip() for line in f if line.strip() and not line.startswith("#")]
 
     valid_proxies: List[Dict[str, Any]] = []
 
     for i, url in enumerate(urls, 1):
-        print(f"[{i:02d}/{len(urls):02d}] 正在提取 HY1 节点 #{i:02d}...", end="", flush=True)
+        print(f"[{i:02d}/{len(urls):02d}] 正在提取纯 IPv4 HY1 节点 #{i:02d}...", end="", flush=True)
         content = fetch_url_content(url)
         if not content:
-            print(" [✗] 提取失败: 节点 URL 连接超时或无法访问")
+            print(" [✗] 提取失败: 超时或无法访问")
             continue
 
         proxy = parse_hy1_json_to_clash_proxy(content, i)
@@ -305,31 +277,30 @@ def main():
             valid_proxies.append(proxy)
             print(f" [✓] 提取成功: {proxy['name']} -> {proxy['server']}:{proxy['port']}")
         else:
-            print(" [✗] 解析失败: JSON 数据格式不合规")
+            print(" [✗] 已过滤 IPv6 或格式无效节点")
 
-    print()
     print("-" * 68)
-    print(f"[*] HY1 节点导出聚合完成: 成功抓取 {len(valid_proxies)} / {len(urls)} 个有效节点")
+    print(f"[*] HY1 纯 IPv4 节点导出完成: 成功抓取 {len(valid_proxies)} 个有效节点")
     print("-" * 68)
 
     if not valid_proxies:
-        print("[!] 警告: 未能获取到任何有效 HY1 节点，保留现有配置以防被清空")
+        print("[!] 警告: 未能获取到任何纯 IPv4 HY1 节点")
         sys.exit(0)
 
-    # 生成 Clash YAML
+    # 1. 生成 YAML
     yaml_content = generate_hy1_clash_yaml(valid_proxies)
     with open(OUTPUT_YAML, "w", encoding="utf-8") as f:
         f.write(yaml_content)
-    print(f"[✓] 成功生成 HY1 配置文件: {OUTPUT_YAML} ({len(yaml_content.encode('utf-8'))} 字节)")
+    print(f"[✓] 成功生成 HY1 配置文件: {OUTPUT_YAML}")
 
-    # 生成 Base64
+    # 2. 生成 Base64
     b64_content = base64.b64encode(yaml_content.encode("utf-8")).decode("utf-8")
     with open(OUTPUT_B64, "w", encoding="utf-8") as f:
         f.write(b64_content)
-    print(f"[✓] 成功生成 HY1 Base64 文件: {OUTPUT_B64} ({len(b64_content.encode('utf-8'))} 字节)")
+    print(f"[✓] 成功生成 HY1 Base64 文件: {OUTPUT_B64}")
 
     print("=" * 68)
-    print("🎉 Hysteria 1 订阅构建全部完成！")
+    print("🎉 Hysteria 1 纯 IPv4 订阅构建完成！")
 
 if __name__ == "__main__":
     main()

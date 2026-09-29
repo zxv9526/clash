@@ -2,11 +2,6 @@ https://gitlab.com/free9999/ipupdate/-/raw/master/backup/img/1/2/ip/hysteria/1/c
 https://gitlab.com/free9999/ipupdate/-/raw/master/backup/img/1/2/ip/hysteria/2/config.json
 https://gitlab.com/free9999/ipupdate/-/raw/master/backup/img/1/2/ip/hysteria/3/config.json
 https://gitlab.com/free9999/ipupdate/-/raw/master/backup/img/1/2/ip/hysteria/4/config.json
-https://gitlab.com/free9999/ipupdate/-/raw/master/backup/img/1/2/ip/hysteria/5/config.json
-https://gitlab.com/free9999/ipupdate/-/raw/master/backup/img/1/2/ip/hysteria/6/config.json
-https://gitlab.com/free9999/ipupdate/-/raw/master/backup/img/1/2/ip/hysteria/7/config.json
-https://gitlab.com/free9999/ipupdate/-/raw/master/backup/img/1/2/ip/hysteria/8/config.json
-https://gitlab.com/free9999/ipupdate/-/raw/master/backup/img/1/2/ip/hysteria/9/config.json
-https://gitlab.com/free9999/ipupdate/-/raw/master/backup/img/1/2/ip/hysteria/10/config.json
-https://gitlab.com/free9999/ipupdate/-/raw/master/backup/img/1/2/ip/hysteria/11/config.json
-https://gitlab.com/free9999/ipupdate/-/raw/master/backup/img/1/2/ip/hysteria/12/config.json
+https://gitlab.com/free9999/ipupdate/-/raw/master/metawj/config.yaml
+https://gitlab.com/free9999/ipupdate/-/raw/master/metawj/2/config.yaml
+https://gitlab.com/free9999/ipupdate/-/raw/master/metawj/3/config.yaml
