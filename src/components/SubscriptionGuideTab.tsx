@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 
 export const SubscriptionGuideTab: React.FC = () => {
-  const [activeSub, setActiveSub] = useState<'clash_meta' | 'hy1'>('hy1');
+  const [activeSub, setActiveSub] = useState<'hy2' | 'hy1' | 'clash_meta'>('hy2');
   const [repoType, setRepoType] = useState<'public' | 'private'>('public');
   const [username, setUsername] = useState('zxv9526');
   const [repoName, setRepoName] = useState('clash');
@@ -36,7 +36,12 @@ export const SubscriptionGuideTab: React.FC = () => {
   const cleanToken = githubToken.trim();
 
   // Target filename based on selected subscription
-  const targetFile = activeSub === 'hy1' ? 'hy1_config.yaml' : 'config.yaml';
+  const targetFile =
+    activeSub === 'hy2'
+      ? 'hy2_config.yaml'
+      : activeSub === 'hy1'
+      ? 'hy1_config.yaml'
+      : 'config.yaml';
 
   // Public Subscription URL formats
   const rawUrl = `https://raw.githubusercontent.com/${cleanUser}/${cleanRepo}/${cleanBranch}/${targetFile}`;
@@ -117,8 +122,31 @@ async function handleRequest(request) {
           </span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-          {/* Sub A: HY1 */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+          {/* Sub 1: HY2 */}
+          <button
+            onClick={() => setActiveSub('hy2')}
+            className={`p-3.5 rounded-xl border text-left transition-all relative ${
+              activeSub === 'hy2'
+                ? 'bg-gradient-to-br from-indigo-950/60 to-purple-950/60 border-indigo-500/80 shadow-lg shadow-indigo-950/50 ring-1 ring-indigo-500'
+                : 'bg-slate-950/60 border-slate-800/80 hover:border-slate-700'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
+                <span>Hysteria 2 (HY2) 独立订阅</span>
+              </span>
+              <code className="text-[10px] font-mono text-purple-300 bg-purple-950/80 px-2 py-0.5 rounded border border-purple-800/50">
+                hy2_config.yaml
+              </code>
+            </div>
+            <p className="text-[11px] text-slate-400 mt-1.5">
+              从 12 个 Hysteria 2 JSON 配置源独立抓取并解析，原生 HY2 专用通道。
+            </p>
+          </button>
+
+          {/* Sub 2: HY1 */}
           <button
             onClick={() => setActiveSub('hy1')}
             className={`p-3.5 rounded-xl border text-left transition-all relative ${
@@ -129,19 +157,19 @@ async function handleRequest(request) {
           >
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="w-2 h-2 rounded-full bg-emerald-400" />
                 <span>Hysteria 1 (HY1) 独立订阅</span>
               </span>
-              <code className="text-[10px] font-mono text-indigo-300 bg-indigo-950/80 px-2 py-0.5 rounded border border-indigo-800/50">
+              <code className="text-[10px] font-mono text-emerald-300 bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-800/50">
                 hy1_config.yaml
               </code>
             </div>
             <p className="text-[11px] text-slate-400 mt-1.5">
-              从 12 个 Hysteria 1 JSON 配置源独立抓取并解析，完全独立的 HY1 专用订阅通道。
+              从 12 个 Hysteria 1 JSON 配置源独立抓取并解析，HY1 专用订阅通道。
             </p>
           </button>
 
-          {/* Sub B: Clash Meta */}
+          {/* Sub 3: Clash Meta */}
           <button
             onClick={() => setActiveSub('clash_meta')}
             className={`p-3.5 rounded-xl border text-left transition-all relative ${
@@ -160,7 +188,7 @@ async function handleRequest(request) {
               </code>
             </div>
             <p className="text-[11px] text-slate-400 mt-1.5">
-              原始 Clash.meta2 订阅（含 Hysteria2 等协议节点），保持之前配置稳定运行。
+              原始 Clash.meta2 订阅（含多协议混合节点），保持初始配置稳定运行。
             </p>
           </button>
         </div>

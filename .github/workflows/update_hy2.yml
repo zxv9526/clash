@@ -1,0 +1,65 @@
+name: 🔄 自动更新 Hysteria 2 (HY2) 节点订阅配置
+
+on:
+  # 每天定时自动抓取一次 (北京时间每天凌晨 04:20 / UTC 20:20，完全独立运行)
+  schedule:
+    - cron: '20 20 * * *'
+  # 支持在 GitHub 网页上随时手动点击运行
+  workflow_dispatch:
+  # 推送修改时也可以触发
+  push:
+    paths:
+      - 'urls_hy2.txt'
+      - 'scripts/update_hy2.py'
+      - '.github/workflows/update_hy2.yml'
+
+# 设置最小权限，确保 Actions 有权限向仓库提交更新文件
+permissions:
+  contents: write
+
+jobs:
+  update-hy2-clash-config:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE20: true
+    steps:
+      - name: 📥 检出仓库代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: 🐍 配置 Python 3.10 环境
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+
+      - name: 📦 安装必要依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyyaml requests urllib3
+
+      - name: 🚀 执行 HY2 节点提取与订阅合并
+        run: |
+          python scripts/update_hy2.py
+
+      - name: 🔍 检查文件变动
+        id: check_changes
+        run: |
+          git status --porcelain
+          if [[ -n $(git status --porcelain hy2_config.yaml hy2_config.b64) ]]; then
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 📤 提交并推送到 GitHub 仓库
+        if: steps.check_changes.outputs.has_changes == 'true' || github.event_name == 'workflow_dispatch'
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add hy2_config.yaml hy2_config.b64
+          git commit -m "chore(auto): 自动更新 Hysteria 2 纯净独立配置 [skip ci] ($(date +'%Y-%m-%d %H:%M:%S'))" || true
+          git pull --rebase || true
+          git push origin HEAD || git push
