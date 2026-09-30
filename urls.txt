@@ -1,8 +1,39 @@
-# Clash/Meta 纯 IPv4 节点订阅源列表
-https://gitlab.com/free9999/ipupdate/-/raw/master/metawj/config.yaml | https://www.67867867.xyz/Alvin9999/PAC/refs/heads/master/metawj/config.yaml
-https://gitlab.com/free9999/ipupdate/-/raw/master/metawj/2/config.yaml | https://www.67867867.xyz/Alvin9999/PAC/refs/heads/master/metawj/2/config.yaml
-https://gitlab.com/free9999/ipupdate/-/raw/master/metawj/3/config.yaml | https://www.67867867.xyz/Alvin9999/PAC/refs/heads/master/metawj/3/config.yaml
-https://gitlab.com/free9999/ipupdate/-/raw/master/backup/img/1/2/ip/hysteria/1/config.json | https://www.67867867.xyz/Alvin9999/PAC/refs/heads/master/backup/img/1/2/ip/hysteria/1/config.json
-https://gitlab.com/free9999/ipupdate/-/raw/master/backup/img/1/2/ip/hysteria/2/config.json | https://www.67867867.xyz/Alvin9999/PAC/refs/heads/master/backup/img/1/2/ip/hysteria/2/config.json
-https://gitlab.com/free9999/ipupdate/-/raw/master/backup/img/1/2/ip/hysteria/3/config.json | https://www.67867867.xyz/Alvin9999/PAC/refs/heads/master/backup/img/1/2/ip/hysteria/3/config.json
-https://gitlab.com/free9999/ipupdate/-/raw/master/backup/img/1/2/ip/hysteria/4/config.json | https://www.67867867.xyz/Alvin9999/PAC/refs/heads/master/backup/img/1/2/ip/hysteria/4/config.json
+# Clash/Meta 节点订阅源列表 (12 个 URL)
+# 每一行代表一个节点的 YAML 远程订阅地址
+# 支持主地址与镜像备用地址 (格式: 主URL | 备用URL)
+
+# 节点 01
+https://gitlab.com/free9999/ipupdate/-/raw/master/backup/img/1/2/ip/clash.meta2/1/config.yaml | https://www.67867867.xyz/Alvin9999/PAC/refs/heads/master/backup/img/1/2/ip/clash.meta2/1/config.yaml
+
+# 节点 02
+https://gitlab.com/free9999/ipupdate/-/raw/master/backup/img/1/2/ip/clash.meta2/2/config.yaml | https://www.67867867.xyz/Alvin9999/PAC/refs/heads/master/backup/img/1/2/ip/clash.meta2/2/config.yaml
+
+# 节点 03
+https://gitlab.com/free9999/ipupdate/-/raw/master/backup/img/1/2/ip/clash.meta2/3/config.yaml | https://www.67867867.xyz/Alvin9999/PAC/refs/heads/master/backup/img/1/2/ip/clash.meta2/3/config.yaml
+
+# 节点 04
+https://gitlab.com/free9999/ipupdate/-/raw/master/backup/img/1/2/ip/clash.meta2/4/config.yaml | https://www.67867867.xyz/Alvin9999/PAC/refs/heads/master/backup/img/1/2/ip/clash.meta2/4/config.yaml
+
+# 节点 05
+https://gitlab.com/free9999/ipupdate/-/raw/master/backup/img/1/2/ip/clash.meta2/5/config.yaml | https://www.67867867.xyz/Alvin9999/PAC/refs/heads/master/backup/img/1/2/ip/clash.meta2/5/config.yaml
+
+# 节点 06
+https://gitlab.com/free9999/ipupdate/-/raw/master/backup/img/1/2/ip/clash.meta2/6/config.yaml | https://www.67867867.xyz/Alvin9999/PAC/refs/heads/master/backup/img/1/2/ip/clash.meta2/6/config.yaml
+
+# 节点 07
+https://gitlab.com/free9999/ipupdate/-/raw/master/backup/img/1/2/ip/clash.meta2/7/config.yaml | https://www.67867867.xyz/Alvin9999/PAC/refs/heads/master/backup/img/1/2/ip/clash.meta2/7/config.yaml
+
+# 节点 08
+https://gitlab.com/free9999/ipupdate/-/raw/master/backup/img/1/2/ip/clash.meta2/8/config.yaml | https://www.67867867.xyz/Alvin9999/PAC/refs/heads/master/backup/img/1/2/ip/clash.meta2/8/config.yaml
+
+# 节点 09
+https://gitlab.com/free9999/ipupdate/-/raw/master/backup/img/1/2/ip/clash.meta2/9/config.yaml | https://www.67867867.xyz/Alvin9999/PAC/refs/heads/master/backup/img/1/2/ip/clash.meta2/9/config.yaml
+
+# 节点 10
+https://gitlab.com/free9999/ipupdate/-/raw/master/backup/img/1/2/ip/clash.meta2/10/config.yaml | https://www.67867867.xyz/Alvin9999/PAC/refs/heads/master/backup/img/1/2/ip/clash.meta2/10/config.yaml
+
+# 节点 11
+https://gitlab.com/free9999/ipupdate/-/raw/master/backup/img/1/2/ip/clash.meta2/11/config.yaml | https://www.67867867.xyz/Alvin9999/PAC/refs/heads/master/backup/img/1/2/ip/clash.meta2/11/config.yaml
+
+# 节点 12
+https://gitlab.com/free9999/ipupdate/-/raw/master/backup/img/1/2/ip/clash.meta2/12/config.yaml | https://www.67867867.xyz/Alvin9999/PAC/refs/heads/master/backup/img/1/2/ip/clash.meta2/12/config.yaml

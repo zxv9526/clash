@@ -2,12 +2,13 @@
 # -*- coding: utf-8 -*-
 """
 =============================================================================
-Karing & Clash Hysteria 2 (HY2) 纯 IPv4 智能验证与自动修复生成脚本
-- 数据源：urls_hy2.txt
+Karing & Clash Hysteria 2 (HY2) 智能验证与自动修复生成脚本
+- 数据源：urls_hy2.txt (包含 14 个 Hysteria 2 JSON 配置文件地址)
 - 核心功能：
-  1. 严格过滤 IPv6 节点，仅保留 100% 纯 IPv4 节点
-  2. 真实 Socket/TLS 探针连通性与 SNI 智能纠错
-  3. 彻底禁用 IPv6 规则与配置，保障无 IPv6 宽带环境通畅使用
+  1. 真实 IPv6/IPv4 Socket 探针连通性测试
+  2. TLS SNI 证书握手智能自动修复 (修复上游 apple.com 等错误 SNI)
+  3. 过滤死节点/未开放端口，仅导出 100% 可用节点
+  4. 多格式输出：Clash YAML (hy2_config.yaml)、Base64 (hy2_config.b64)、明文 (hy2_links.txt)
 =============================================================================
 """
 
@@ -22,6 +23,20 @@ import datetime
 import urllib.parse
 from typing import List, Dict, Any, Optional, Tuple
 
+try:
+    import yaml
+except ImportError:
+    yaml = None
+
+try:
+    import requests
+    import urllib3
+    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+    HAS_REQUESTS = True
+except ImportError:
+    HAS_REQUESTS = False
+    import urllib.request
+
 TIMEOUT = 10
 MAX_RETRIES = 2
 OUTPUT_YAML = "hy2_config.yaml"
@@ -32,6 +47,7 @@ URLS_FILE = "urls_hy2.txt"
 DEFAULT_HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     "Accept": "application/json, text/plain, */*",
+    "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8"
 }
 
 def get_backup_url(primary_url: str) -> Optional[str]:
@@ -53,44 +69,54 @@ def fetch_url_content(url: str) -> Optional[str]:
     for idx, target_url in enumerate(urls_to_try):
         for attempt in range(1, MAX_RETRIES + 1):
             try:
-                ctx = ssl.create_default_context()
-                ctx.check_hostname = False
-                ctx.verify_mode = ssl.CERT_NONE
-                req = urllib.request.Request(target_url, headers=DEFAULT_HEADERS)
-                with urllib.request.urlopen(req, timeout=TIMEOUT, context=ctx) as response:
-                    if response.status == 200:
-                        content = response.read().decode('utf-8', errors='ignore')
-                        if content.strip():
-                            return content
+                if HAS_REQUESTS:
+                    res = requests.get(
+                        target_url,
+                        headers=DEFAULT_HEADERS,
+                        timeout=TIMEOUT,
+                        verify=False
+                    )
+                    if res.status_code == 200 and res.text.strip():
+                        return res.text
+                else:
+                    ctx = ssl.create_default_context()
+                    ctx.check_hostname = False
+                    ctx.verify_mode = ssl.CERT_NONE
+                    req = urllib.request.Request(target_url, headers=DEFAULT_HEADERS)
+                    with urllib.request.urlopen(req, timeout=TIMEOUT, context=ctx) as response:
+                        if response.status == 200:
+                            content = response.read().decode('utf-8', errors='ignore')
+                            if content.strip():
+                                return content
             except Exception:
                 pass
 
     return None
 
-def is_ipv6_host(host: str) -> bool:
-    """判断地址是否为 IPv6"""
-    if not host:
-        return False
-    clean = host.strip().lstrip("[").rstrip("]")
-    return ":" in clean
-
 def verify_and_repair_node_tls(host: str, port: int, original_sni: str) -> Tuple[bool, str]:
-    """通过真实 IPv4 Socket 探针验证节点的网络连通性与 TLS SNI"""
+    """
+    通过真实 Socket 探针验证节点的网络连通性与 TLS SNI，
+    如果原始 SNI 握手失败，自动修复为可用的 SNI (如 www.microsoft.com)。
+    """
     ctx = ssl.create_default_context()
     ctx.check_hostname = False
     ctx.verify_mode = ssl.CERT_NONE
 
     snis_to_test = [original_sni, "www.microsoft.com", "bing.com", "gateway.icloud.com"]
+    # 过滤重复 SNI
     seen_snis = []
     for s in snis_to_test:
         if s and s not in seen_snis:
             seen_snis.append(s)
 
+    is_ipv6 = ":" in host
+    family = socket.AF_INET6 if is_ipv6 else socket.AF_INET
+
     for test_sni in seen_snis:
         sock = None
         try:
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.settimeout(3.5)
+            sock = socket.socket(family, socket.SOCK_STREAM)
+            sock.settimeout(4.0)
             sock.connect((host, port))
             
             tls_sock = ctx.wrap_socket(sock, server_hostname=test_sni)
@@ -106,7 +132,7 @@ def verify_and_repair_node_tls(host: str, port: int, original_sni: str) -> Tuple
     return False, original_sni
 
 def parse_hy2_json_to_clash_proxy(json_str: str, node_index: int) -> Optional[Dict[str, Any]]:
-    """解析 Hysteria 2 JSON 配置为纯 IPv4 节点"""
+    """解析 Hysteria 2 JSON 配置并进行网络探针修复"""
     try:
         data = json.loads(json_str.strip())
     except Exception:
@@ -123,6 +149,7 @@ def parse_hy2_json_to_clash_proxy(json_str: str, node_index: int) -> Optional[Di
     if not server_raw or ":" not in server_raw:
         return None
 
+    # 解析 host 和 port
     if server_raw.startswith("[") and "]:" in server_raw:
         parts = server_raw.split("]:")
         host = parts[0].lstrip("[").strip()
@@ -131,10 +158,6 @@ def parse_hy2_json_to_clash_proxy(json_str: str, node_index: int) -> Optional[Di
         parts = server_raw.rsplit(":", 1)
         host = parts[0].strip()
         port = int(parts[1].strip())
-
-    # 🛑 **严格过滤 IPv6 节点**
-    if is_ipv6_host(host):
-        return None
 
     auth_str = str(data.get("auth", data.get("password", "dongtaiwang.com"))).strip()
 
@@ -149,14 +172,19 @@ def parse_hy2_json_to_clash_proxy(json_str: str, node_index: int) -> Optional[Di
     up_str = f"{up_raw} Mbps" if isinstance(up_raw, (int, float)) else str(up_raw).strip()
     down_str = f"{down_raw} Mbps" if isinstance(down_raw, (int, float)) else str(down_raw).strip()
 
-    # 🔍 真实 IPv4 Socket/TLS 握手探针与 SNI 修复
+    # 🔍 执行真实 Socket/TLS 握手探针与 SNI 智能修复
     is_alive, working_sni = verify_and_repair_node_tls(host, port, raw_sni)
     if not is_alive:
-        print(f" [✗] 连通性测试未通过: {host}:{port}")
+        print(f" [✗] 连通性测试未通过: {host}:{port} (节点端口关闭或拒绝连接)")
         return None
+
+    if working_sni != raw_sni:
+        print(f" [🔧 SNI 已智能修复]: 原 SNI '{raw_sni}' 握手失败 -> 自动纠正为 '{working_sni}'")
 
     node_name = f"HY2 节点 {node_index:02d} ({host})"
 
+    # 生成标准 hy2:// URI
+    host_for_uri = f"[{host}]" if ":" in host else host
     uri_params = []
     if working_sni:
         uri_params.append(f"sni={urllib.parse.quote(working_sni)}")
@@ -165,7 +193,7 @@ def parse_hy2_json_to_clash_proxy(json_str: str, node_index: int) -> Optional[Di
 
     query_str = ("?" + "&".join(uri_params)) if uri_params else ""
     tag_str = "#" + urllib.parse.quote(node_name)
-    hy2_uri = f"hy2://{urllib.parse.quote(auth_str)}@{host}:{port}{query_str}{tag_str}"
+    hy2_uri = f"hy2://{urllib.parse.quote(auth_str)}@{host_for_uri}:{port}{query_str}{tag_str}"
 
     proxy_dict: Dict[str, Any] = {
         "name": node_name,
@@ -187,7 +215,7 @@ def parse_hy2_json_to_clash_proxy(json_str: str, node_index: int) -> Optional[Di
     return proxy_dict
 
 def generate_hy2_clash_yaml(proxies: List[Dict[str, Any]]) -> str:
-    """生成适用于 Karing / Clash Meta 的纯 IPv4 HY2 配置文件 (禁用 IPv6)"""
+    """生成适用于 Karing / Clash Meta / Mihomo 的完整 Clash YAML 配置"""
     proxy_names = [p["name"] for p in proxies]
 
     def yaml_indent(items, spaces=6):
@@ -209,24 +237,25 @@ def generate_hy2_clash_yaml(proxies: List[Dict[str, Any]]) -> str:
         yaml_proxies_block += f"    fast-open: true\n"
 
     template = f"""# =================================================================
-# Karing & Clash Hysteria 2 (HY2) 纯 IPv4 专用节点订阅配置文件 (已禁用 IPv6)
-# 更新时间: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
-# 纯 IPv4 HY2 节点总数: {len(proxies)} 个
+# Karing & Clash Hysteria 2 (HY2) 专用节点订阅配置文件
+# 独立自动化检测更新于: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+# 经过真实探针验证可用节点: {len(proxies)} 个
 # =================================================================
 secret: github.com/Alvin9999-newpac/fanqiang
 mixed-port: 7890
 allow-lan: false
 mode: rule
 log-level: info
-ipv6: false
+ipv6: true
 
 dns:
   enable: true
-  ipv6: false
+  ipv6: true
   nameserver:
     - 223.5.5.5
     - 119.29.29.29
     - 114.114.114.114
+    - 2400:3200::1
   fallback-filter:
     geoip: false
     ipcidr:
@@ -308,7 +337,7 @@ rules:
 
 def main():
     print("=" * 68)
-    print(">>> 开始执行 Karing & Clash Hysteria 2 (HY2) 纯 IPv4 验证与生成任务")
+    print(">>> 开始执行 Karing & Clash Hysteria 2 (HY2) 智能验证与自动修复生成任务")
     print(f">>> 执行时间: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 68)
 
@@ -319,49 +348,52 @@ def main():
     with open(URLS_FILE, "r", encoding="utf-8") as f:
         urls = [line.strip() for line in f if line.strip() and not line.startswith("#")]
 
+    print(f"[*] 从 {URLS_FILE} 中读取到 {len(urls)} 个 HY2 JSON 源")
+    print()
+
     valid_proxies: List[Dict[str, Any]] = []
 
     for i, url in enumerate(urls, 1):
-        print(f"[{i:02d}/{len(urls):02d}] 正在检测纯 IPv4 HY2 节点 #{i:02d}...", end="", flush=True)
+        print(f"[{i:02d}/{len(urls):02d}] 正在提取与检测 HY2 节点 #{i:02d}...", end="", flush=True)
         content = fetch_url_content(url)
         if not content:
-            print(" [✗] 提取失败: 超时或无法访问")
+            print(" [✗] 提取失败: 节点 URL 连接超时或无法访问")
             continue
 
         proxy = parse_hy2_json_to_clash_proxy(content, i)
         if proxy:
             valid_proxies.append(proxy)
-            print(f" [✓] 检验通过: {proxy['name']} -> {proxy['server']}:{proxy['port']}")
-        else:
-            print(" [✗] 已过滤 IPv6 节点或无效无响应节点")
+            print(f" [✓] 检验通过: {proxy['name']} -> {proxy['server']}:{proxy['port']} (SNI: {proxy['sni']})")
 
+    print()
     print("-" * 68)
-    print(f"[*] HY2 纯 IPv4 节点聚合完成: 成功通过 {len(valid_proxies)} 个纯 IPv4 节点")
+    print(f"[*] HY2 节点验证与修复聚合完成: 成功通过 {len(valid_proxies)} / {len(urls)} 个可用节点")
     print("-" * 68)
 
     if not valid_proxies:
-        print("[!] 提示: 未在 urls_hy2.txt 中查找到纯 IPv4 的 HY2 源，保持现有模板防清空")
+        print("[!] 警告: 未能获取到任何通过探针的 HY2 节点，保留现有配置以防清空")
         sys.exit(0)
 
     # 1. 生成 Clash YAML
     yaml_content = generate_hy2_clash_yaml(valid_proxies)
     with open(OUTPUT_YAML, "w", encoding="utf-8") as f:
         f.write(yaml_content)
-    print(f"[✓] 成功生成 HY2 纯 IPv4 配置文件: {OUTPUT_YAML}")
+    print(f"[✓] 成功生成 HY2 配置文件: {OUTPUT_YAML} ({len(yaml_content.encode('utf-8'))} 字节)")
 
-    # 2. 生成明文 hy2://
+    # 2. 生成明文 hy2:// 节点链接列表
     raw_links = "\n".join(p["hy2_uri"] for p in valid_proxies)
     with open(OUTPUT_LINKS, "w", encoding="utf-8") as f:
         f.write(raw_links)
+    print(f"[✓] 成功生成 HY2 明文节点链接文件: {OUTPUT_LINKS}")
 
-    # 3. 生成 Base64
+    # 3. 生成通用 Base64 订阅
     b64_content = base64.b64encode(raw_links.encode("utf-8")).decode("utf-8")
     with open(OUTPUT_B64, "w", encoding="utf-8") as f:
         f.write(b64_content)
-    print(f"[✓] 成功生成 HY2 纯 IPv4 Base64 订阅文件: {OUTPUT_B64}")
+    print(f"[✓] 成功生成 HY2 Base64 订阅文件: {OUTPUT_B64} ({len(b64_content.encode('utf-8'))} 字节)")
 
     print("=" * 68)
-    print("🎉 Hysteria 2 纯 IPv4 订阅构建全部完成！")
+    print("🎉 Hysteria 2 订阅智能构建全部完成！")
 
 if __name__ == "__main__":
     main()

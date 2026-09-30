@@ -1,68 +1,71 @@
 # =================================================================
-# Clash / Mihomo 纯 IPv4 专用订阅配置文件 (已完全禁用 IPv6)
-# 更新时间: 2026-09-29 22:54:27
-# 可用纯 IPv4 节点总数: 3 个
+# Clash 混合 12 节点订阅配置文件
+# 独立自动化更新于: 2026-09-29 22:31:12
+# 节点总数: 6 个有效节点
 # =================================================================
 secret: github.com/Alvin9999-newpac/fanqiang
 mixed-port: 7890
 allow-lan: false
 mode: rule
 log-level: info
-ipv6: false
+ipv6: true
 
 dns:
   enable: true
-  ipv6: false
+  ipv6: true
   nameserver:
-    - 223.5.5.5
     - 119.29.29.29
-    - 114.114.114.114
-  fallback-filter:
-    geoip: false
-    ipcidr:
-      - 240.0.0.0/4
-      - 0.0.0.0/32
+    - 223.5.5.5
 
 proxies:
-  - name: "节点 01 [HYSTERIA] (173.234.25.51)"
+  - name: "节点 01"
     type: hysteria
-    server: "173.234.25.51"
-    port: 42479
-    auth-str: "dongadlkdjafidjdfaodfadfdf"
-    protocol: udp
-    alpn:
-      - h3
-    sni: "wechat.com"
+    server: "-"
+    port: 7890
+    sni: "bing.com"
     skip-cert-verify: true
     up: "11 Mbps"
     down: "55 Mbps"
-    fast-open: true
-  - name: "节点 02 [HYSTERIA] (104.149.153.91)"
+  - name: "节点 02"
     type: hysteria
-    server: "104.149.153.91"
-    port: 10802
-    auth-str: "Ryr93NBZcQneXUrlB9MX6RR414GPrsgJLHcecA9X6z0sazuHVC"
-    protocol: udp
-    alpn:
-      - h3
-    sni: "www.microsoft.com"
+    server: "-"
+    port: 7890
+    sni: "bing.com"
     skip-cert-verify: true
     up: "11 Mbps"
     down: "55 Mbps"
-    fast-open: true
-  - name: "节点 03 [HYSTERIA] (104.149.148.219)"
+  - name: "节点 03"
     type: hysteria
-    server: "104.149.148.219"
-    port: 34753
-    auth-str: "sWZ27pSm6mZb9MiFmde4dSNyBToBd02UTm2RgrZJfFDkhSSZWU"
-    protocol: udp
-    alpn:
-      - h3
-    sni: "www.paypal.com"
+    server: "-"
+    port: 7890
+    sni: "bing.com"
     skip-cert-verify: true
     up: "11 Mbps"
     down: "55 Mbps"
-    fast-open: true
+  - name: "节点 04"
+    type: hysteria
+    server: "-"
+    port: 7890
+    sni: "bing.com"
+    skip-cert-verify: true
+    up: "11 Mbps"
+    down: "55 Mbps"
+  - name: "节点 05"
+    type: hysteria
+    server: "-"
+    port: 7890
+    sni: "apple.com"
+    skip-cert-verify: true
+    up: "11 Mbps"
+    down: "55 Mbps"
+  - name: "节点 06"
+    type: hysteria
+    server: "-"
+    port: 7890
+    sni: "apple.com"
+    skip-cert-verify: true
+    up: "11 Mbps"
+    down: "55 Mbps"
 
 proxy-groups:
   - name: 🚀 节点选择
@@ -70,84 +73,80 @@ proxy-groups:
     proxies:
       - ♻️ 自动选择
       - DIRECT
-      - "节点 01 [HYSTERIA] (173.234.25.51)"
-      - "节点 02 [HYSTERIA] (104.149.153.91)"
-      - "节点 03 [HYSTERIA] (104.149.148.219)"
+      - "节点 01"
+      - "节点 02"
+      - "节点 03"
+      - "节点 04"
+      - "节点 05"
+      - "节点 06"
   - name: ♻️ 自动选择
     type: fallback
     url: http://www.gstatic.com/generate_204
     interval: 5
     proxies:
-      - "节点 01 [HYSTERIA] (173.234.25.51)"
-      - "节点 02 [HYSTERIA] (104.149.153.91)"
-      - "节点 03 [HYSTERIA] (104.149.148.219)"
+      - "节点 01"
+      - "节点 02"
+      - "节点 03"
+      - "节点 04"
+      - "节点 05"
+      - "节点 06"
   - name: 🌍 国外媒体
     type: select
     proxies:
       - 🚀 节点选择
       - ♻️ 自动选择
       - 🎯 全球直连
-      - "节点 01 [HYSTERIA] (173.234.25.51)"
-      - "节点 02 [HYSTERIA] (104.149.153.91)"
-      - "节点 03 [HYSTERIA] (104.149.148.219)"
+      - "节点 01"
+      - "节点 02"
+      - "节点 03"
+      - "节点 04"
+      - "节点 05"
+      - "节点 06"
   - name: 📲 电报信息
     type: select
     proxies:
       - 🚀 节点选择
       - 🎯 全球直连
-      - "节点 01 [HYSTERIA] (173.234.25.51)"
-      - "节点 02 [HYSTERIA] (104.149.153.91)"
-      - "节点 03 [HYSTERIA] (104.149.148.219)"
+      - "节点 01"
+      - "节点 02"
+      - "节点 03"
+      - "节点 04"
+      - "节点 05"
+      - "节点 06"
   - name: Ⓜ️ 微软服务
     type: select
     proxies:
       - 🎯 全球直连
       - 🚀 节点选择
-      - "节点 01 [HYSTERIA] (173.234.25.51)"
-      - "节点 02 [HYSTERIA] (104.149.153.91)"
-      - "节点 03 [HYSTERIA] (104.149.148.219)"
+      - "节点 01"
+      - "节点 02"
+      - "节点 03"
+      - "节点 04"
+      - "节点 05"
+      - "节点 06"
   - name: 🍎 苹果服务
     type: select
     proxies:
       - 🚀 节点选择
       - 🎯 全球直连
-      - "节点 01 [HYSTERIA] (173.234.25.51)"
-      - "节点 02 [HYSTERIA] (104.149.153.91)"
-      - "节点 03 [HYSTERIA] (104.149.148.219)"
+      - "节点 01"
+      - "节点 02"
+      - "节点 03"
+      - "节点 04"
+      - "节点 05"
+      - "节点 06"
   - name: 🎯 全球直连
     type: select
     proxies:
       - DIRECT
       - 🚀 节点选择
       - ♻️ 自动选择
-      - "节点 01 [HYSTERIA] (173.234.25.51)"
-      - "节点 02 [HYSTERIA] (104.149.153.91)"
-      - "节点 03 [HYSTERIA] (104.149.148.219)"
-  - name: 🛑 全球拦截
-    type: select
-    proxies:
-      - REJECT
-      - DIRECT
-      - "节点 01 [HYSTERIA] (173.234.25.51)"
-      - "节点 02 [HYSTERIA] (104.149.153.91)"
-      - "节点 03 [HYSTERIA] (104.149.148.219)"
-  - name: 🍃 应用净化
-    type: select
-    proxies:
-      - REJECT
-      - DIRECT
-      - "节点 01 [HYSTERIA] (173.234.25.51)"
-      - "节点 02 [HYSTERIA] (104.149.153.91)"
-      - "节点 03 [HYSTERIA] (104.149.148.219)"
-  - name: 🐟 漏网之鱼
-    type: select
-    proxies:
-      - 🚀 节点选择
-      - 🎯 全球直连
-      - ♻️ 自动选择
-      - "节点 01 [HYSTERIA] (173.234.25.51)"
-      - "节点 02 [HYSTERIA] (104.149.153.91)"
-      - "节点 03 [HYSTERIA] (104.149.148.219)"
+      - "节点 01"
+      - "节点 02"
+      - "节点 03"
+      - "节点 04"
+      - "节点 05"
+      - "节点 06"
 
 rules:
   - MATCH,🚀 节点选择
