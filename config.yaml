@@ -13,9 +13,9 @@ dns:
     - 240.0.0.0/4
     - 0.0.0.0/32
 proxies:
-- name: 节点 01 [HYSTERIA] (62.210.70.191)
+- name: 节点 01 [HYSTERIA] (62.210.28.175)
   type: hysteria
-  server: 62.210.70.191
+  server: 62.210.28.175
   port: 24667
   auth-str: dongtaiwang.com
   sni: bing.com
@@ -91,7 +91,7 @@ proxy-groups:
   proxies:
   - ♻️ 自动选择
   - DIRECT
-  - 节点 01 [HYSTERIA] (62.210.70.191)
+  - 节点 01 [HYSTERIA] (62.210.28.175)
   - 节点 02 [HYSTERIA] (163.172.117.163)
   - 节点 03 [HYSTERIA] (62.210.70.191)
   - 节点 04 [HYSTERIA] (62.210.70.191)
@@ -102,7 +102,7 @@ proxy-groups:
   url: https://www.gstatic.com/generate_204
   interval: 5
   proxies:
-  - 节点 01 [HYSTERIA] (62.210.70.191)
+  - 节点 01 [HYSTERIA] (62.210.28.175)
   - 节点 02 [HYSTERIA] (163.172.117.163)
   - 节点 03 [HYSTERIA] (62.210.70.191)
   - 节点 04 [HYSTERIA] (62.210.70.191)
@@ -114,7 +114,7 @@ proxy-groups:
   - 🚀 节点选择
   - ♻️ 自动选择
   - 🎯 全球直连
-  - 节点 01 [HYSTERIA] (62.210.70.191)
+  - 节点 01 [HYSTERIA] (62.210.28.175)
   - 节点 02 [HYSTERIA] (163.172.117.163)
   - 节点 03 [HYSTERIA] (62.210.70.191)
   - 节点 04 [HYSTERIA] (62.210.70.191)
@@ -125,7 +125,7 @@ proxy-groups:
   proxies:
   - 🚀 节点选择
   - 🎯 全球直连
-  - 节点 01 [HYSTERIA] (62.210.70.191)
+  - 节点 01 [HYSTERIA] (62.210.28.175)
   - 节点 02 [HYSTERIA] (163.172.117.163)
   - 节点 03 [HYSTERIA] (62.210.70.191)
   - 节点 04 [HYSTERIA] (62.210.70.191)
@@ -136,7 +136,7 @@ proxy-groups:
   proxies:
   - 🎯 全球直连
   - 🚀 节点选择
-  - 节点 01 [HYSTERIA] (62.210.70.191)
+  - 节点 01 [HYSTERIA] (62.210.28.175)
   - 节点 02 [HYSTERIA] (163.172.117.163)
   - 节点 03 [HYSTERIA] (62.210.70.191)
   - 节点 04 [HYSTERIA] (62.210.70.191)
@@ -147,7 +147,7 @@ proxy-groups:
   proxies:
   - 🚀 节点选择
   - 🎯 全球直连
-  - 节点 01 [HYSTERIA] (62.210.70.191)
+  - 节点 01 [HYSTERIA] (62.210.28.175)
   - 节点 02 [HYSTERIA] (163.172.117.163)
   - 节点 03 [HYSTERIA] (62.210.70.191)
   - 节点 04 [HYSTERIA] (62.210.70.191)
@@ -159,7 +159,7 @@ proxy-groups:
   - DIRECT
   - 🚀 节点选择
   - ♻️ 自动选择
-  - 节点 01 [HYSTERIA] (62.210.70.191)
+  - 节点 01 [HYSTERIA] (62.210.28.175)
   - 节点 02 [HYSTERIA] (163.172.117.163)
   - 节点 03 [HYSTERIA] (62.210.70.191)
   - 节点 04 [HYSTERIA] (62.210.70.191)
@@ -170,7 +170,7 @@ proxy-groups:
   proxies:
   - REJECT
   - DIRECT
-  - 节点 01 [HYSTERIA] (62.210.70.191)
+  - 节点 01 [HYSTERIA] (62.210.28.175)
   - 节点 02 [HYSTERIA] (163.172.117.163)
   - 节点 03 [HYSTERIA] (62.210.70.191)
   - 节点 04 [HYSTERIA] (62.210.70.191)
@@ -181,7 +181,7 @@ proxy-groups:
   proxies:
   - REJECT
   - DIRECT
-  - 节点 01 [HYSTERIA] (62.210.70.191)
+  - 节点 01 [HYSTERIA] (62.210.28.175)
   - 节点 02 [HYSTERIA] (163.172.117.163)
   - 节点 03 [HYSTERIA] (62.210.70.191)
   - 节点 04 [HYSTERIA] (62.210.70.191)
@@ -193,7 +193,7 @@ proxy-groups:
   - 🚀 节点选择
   - 🎯 全球直连
   - ♻️ 自动选择
-  - 节点 01 [HYSTERIA] (62.210.70.191)
+  - 节点 01 [HYSTERIA] (62.210.28.175)
   - 节点 02 [HYSTERIA] (163.172.117.163)
   - 节点 03 [HYSTERIA] (62.210.70.191)
   - 节点 04 [HYSTERIA] (62.210.70.191)
