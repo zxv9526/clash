@@ -1,6 +1,6 @@
 # =================================================================
 # Clash Hysteria 1 (HY1) 专用节点订阅配置文件
-# 独立自动化更新于: 2026-11-07 00:04:18
+# 独立自动化更新于: 2026-11-07 23:37:16
 # 节点总数: 4 个可用 Hysteria 1 节点
 # =================================================================
 secret: github.com/Alvin9999-newpac/fanqiang
@@ -22,7 +22,7 @@ proxies:
   - name: HY1 节点 01 (137.175.82.44)
     type: hysteria
     server: 137.175.82.44
-    port: 443
+    port: 20022
     auth-str: dongtaiwang.com
     sni: bing.com
     skip-cert-verify: true
