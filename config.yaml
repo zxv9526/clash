@@ -13,9 +13,9 @@ dns:
     - 240.0.0.0/4
     - 0.0.0.0/32
 proxies:
-- name: 节点 01 [HYSTERIA] (62.210.28.175)
+- name: 节点 01 [HYSTERIA] (62.210.124.132)
   type: hysteria
-  server: 62.210.28.175
+  server: 62.210.124.132
   port: 24667
   auth-str: dongtaiwang.com
   sni: bing.com
@@ -25,10 +25,10 @@ proxies:
   protocol: udp
   up: 11 Mbps
   down: 55 Mbps
-- name: 节点 02 [HYSTERIA] (163.172.117.163)
+- name: 节点 02 [HYSTERIA] (62.210.124.132)
   type: hysteria
-  server: 163.172.117.163
-  port: 36699
+  server: 62.210.124.132
+  port: 24667
   auth-str: dongtaiwang.com
   sni: bing.com
   skip-cert-verify: true
@@ -91,8 +91,8 @@ proxy-groups:
   proxies:
   - ♻️ 自动选择
   - DIRECT
-  - 节点 01 [HYSTERIA] (62.210.28.175)
-  - 节点 02 [HYSTERIA] (163.172.117.163)
+  - 节点 01 [HYSTERIA] (62.210.124.132)
+  - 节点 02 [HYSTERIA] (62.210.124.132)
   - 节点 03 [HYSTERIA] (62.210.70.191)
   - 节点 04 [HYSTERIA] (62.210.70.191)
   - 节点 05 [HYSTERIA] (2a14:7584:d097::a)
@@ -102,8 +102,8 @@ proxy-groups:
   url: https://www.gstatic.com/generate_204
   interval: 5
   proxies:
-  - 节点 01 [HYSTERIA] (62.210.28.175)
-  - 节点 02 [HYSTERIA] (163.172.117.163)
+  - 节点 01 [HYSTERIA] (62.210.124.132)
+  - 节点 02 [HYSTERIA] (62.210.124.132)
   - 节点 03 [HYSTERIA] (62.210.70.191)
   - 节点 04 [HYSTERIA] (62.210.70.191)
   - 节点 05 [HYSTERIA] (2a14:7584:d097::a)
@@ -114,8 +114,8 @@ proxy-groups:
   - 🚀 节点选择
   - ♻️ 自动选择
   - 🎯 全球直连
-  - 节点 01 [HYSTERIA] (62.210.28.175)
-  - 节点 02 [HYSTERIA] (163.172.117.163)
+  - 节点 01 [HYSTERIA] (62.210.124.132)
+  - 节点 02 [HYSTERIA] (62.210.124.132)
   - 节点 03 [HYSTERIA] (62.210.70.191)
   - 节点 04 [HYSTERIA] (62.210.70.191)
   - 节点 05 [HYSTERIA] (2a14:7584:d097::a)
@@ -125,8 +125,8 @@ proxy-groups:
   proxies:
   - 🚀 节点选择
   - 🎯 全球直连
-  - 节点 01 [HYSTERIA] (62.210.28.175)
-  - 节点 02 [HYSTERIA] (163.172.117.163)
+  - 节点 01 [HYSTERIA] (62.210.124.132)
+  - 节点 02 [HYSTERIA] (62.210.124.132)
   - 节点 03 [HYSTERIA] (62.210.70.191)
   - 节点 04 [HYSTERIA] (62.210.70.191)
   - 节点 05 [HYSTERIA] (2a14:7584:d097::a)
@@ -136,8 +136,8 @@ proxy-groups:
   proxies:
   - 🎯 全球直连
   - 🚀 节点选择
-  - 节点 01 [HYSTERIA] (62.210.28.175)
-  - 节点 02 [HYSTERIA] (163.172.117.163)
+  - 节点 01 [HYSTERIA] (62.210.124.132)
+  - 节点 02 [HYSTERIA] (62.210.124.132)
   - 节点 03 [HYSTERIA] (62.210.70.191)
   - 节点 04 [HYSTERIA] (62.210.70.191)
   - 节点 05 [HYSTERIA] (2a14:7584:d097::a)
@@ -147,8 +147,8 @@ proxy-groups:
   proxies:
   - 🚀 节点选择
   - 🎯 全球直连
-  - 节点 01 [HYSTERIA] (62.210.28.175)
-  - 节点 02 [HYSTERIA] (163.172.117.163)
+  - 节点 01 [HYSTERIA] (62.210.124.132)
+  - 节点 02 [HYSTERIA] (62.210.124.132)
   - 节点 03 [HYSTERIA] (62.210.70.191)
   - 节点 04 [HYSTERIA] (62.210.70.191)
   - 节点 05 [HYSTERIA] (2a14:7584:d097::a)
@@ -159,8 +159,8 @@ proxy-groups:
   - DIRECT
   - 🚀 节点选择
   - ♻️ 自动选择
-  - 节点 01 [HYSTERIA] (62.210.28.175)
-  - 节点 02 [HYSTERIA] (163.172.117.163)
+  - 节点 01 [HYSTERIA] (62.210.124.132)
+  - 节点 02 [HYSTERIA] (62.210.124.132)
   - 节点 03 [HYSTERIA] (62.210.70.191)
   - 节点 04 [HYSTERIA] (62.210.70.191)
   - 节点 05 [HYSTERIA] (2a14:7584:d097::a)
@@ -170,8 +170,8 @@ proxy-groups:
   proxies:
   - REJECT
   - DIRECT
-  - 节点 01 [HYSTERIA] (62.210.28.175)
-  - 节点 02 [HYSTERIA] (163.172.117.163)
+  - 节点 01 [HYSTERIA] (62.210.124.132)
+  - 节点 02 [HYSTERIA] (62.210.124.132)
   - 节点 03 [HYSTERIA] (62.210.70.191)
   - 节点 04 [HYSTERIA] (62.210.70.191)
   - 节点 05 [HYSTERIA] (2a14:7584:d097::a)
@@ -181,8 +181,8 @@ proxy-groups:
   proxies:
   - REJECT
   - DIRECT
-  - 节点 01 [HYSTERIA] (62.210.28.175)
-  - 节点 02 [HYSTERIA] (163.172.117.163)
+  - 节点 01 [HYSTERIA] (62.210.124.132)
+  - 节点 02 [HYSTERIA] (62.210.124.132)
   - 节点 03 [HYSTERIA] (62.210.70.191)
   - 节点 04 [HYSTERIA] (62.210.70.191)
   - 节点 05 [HYSTERIA] (2a14:7584:d097::a)
@@ -193,8 +193,8 @@ proxy-groups:
   - 🚀 节点选择
   - 🎯 全球直连
   - ♻️ 自动选择
-  - 节点 01 [HYSTERIA] (62.210.28.175)
-  - 节点 02 [HYSTERIA] (163.172.117.163)
+  - 节点 01 [HYSTERIA] (62.210.124.132)
+  - 节点 02 [HYSTERIA] (62.210.124.132)
   - 节点 03 [HYSTERIA] (62.210.70.191)
   - 节点 04 [HYSTERIA] (62.210.70.191)
   - 节点 05 [HYSTERIA] (2a14:7584:d097::a)
